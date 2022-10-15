@@ -7,8 +7,6 @@ title: "simulation"
 output: html_document
 ---
 ```{r}
-getwd()
-citation(package = "BayesFactor")
 library(brms)
 library(rstanarm)
 library(bayestestR)
@@ -382,7 +380,6 @@ ggplot(sim, aes(x=n.simulations, y=type.one.error.rate)) +
 
 
 ```{r}
-
 #correlation between resp p val & difference
 cor_f_test <- cor.test(results$diff, groups_2$freq_pval)
 cor_freq <- cor_f_test$estimate
