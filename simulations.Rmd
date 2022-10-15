@@ -1,0 +1,393 @@
+---
+title: "simulations"
+output: html_document
+---
+---
+title: "simulation"
+output: html_document
+---
+```{r}
+getwd()
+citation(package = "BayesFactor")
+library(brms)
+library(rstanarm)
+library(bayestestR)
+library(BayesFactor)
+library(emmeans)
+library(parallel)
+library(bridgesampling)
+library(tidyverse)
+library(extraDistr)
+options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
+```
+
+#2 group simulation
+```{r}
+fit <- function(i, sample_size) {
+  data <- data.frame(group = rep(c("control", "treatmentA"), each = sample_size), 
+                     value = c(rnorm(n = sample_size), 
+                               rnorm(n = sample_size)))
+  data$group <- factor(data$group)
+  
+  means <- data %>% group_by(group) %>% 
+    summarise(mean = mean(value)) %>% 
+    pivot_wider(names_from = group, values_from = mean) %>% 
+    mutate(diff = treatmentA - control)
+  diff <- means$diff
+  
+  se <- sd(data$value)/(sqrt(sample_size))
+  lm
+  #freq model
+  freq <- lm(value ~ group, data)
+  freq_pval <- summary(freq)$coef[2, 4]
+  joint_tests(freq)
+  
+  #null model - intercept only
+  bayes_intercept <- brm(formula = value ~ 1, 
+                         data = data, 
+                         sample_prior = "yes") #intercept-only model 
+  
+  #bayes model - flat prior 
+  bayes_flatprior <- brm(formula = value ~ group, 
+                         data = data, save_pars = save_pars(all = TRUE))
+  bayes_flat_test <- joint_tests(bayes_flatprior)
+  bayes_flat_pval <- bayes_flat_test$p.value
+  
+  #LOO & WAIC comparison 
+  loo_flat <- LOO(bayes_flatprior, bayes_intercept)
+  loo_elpd_diff_flat <- loo_flat$diffs[2]
+  loo_se_diff_flat <- loo_flat$diffs[4]
+  
+  waic_flat <- WAIC(bayes_flatprior, bayes_intercept)
+  waic_elpd_diff_flat <- waic_flat$diffs[2]
+  waic_se_diff_flat <- waic_flat$diffs[4]
+  
+  
+  #bayes model - student prior 
+  student_prior <- c(set_prior("student_t(3 , 0, 1/sqrt(2))", class = "b")) 
+  bayes_studentprior <- brm(formula = value ~ group, 
+                            data = data, 
+                            prior = student_prior, 
+                            save_pars = save_pars(all = TRUE))
+  bayes_student_test <- joint_tests(bayes_studentprior)
+  bayes_student_pval <- bayes_student_test$p.value
+  #LOO & WAIC comparison 
+  loo_student <- LOO(bayes_studentprior, bayes_intercept)
+  loo_elpd_diff_student <- loo_student$diffs[2]
+  loo_se_diff_student <- loo_student$diffs[4]
+  
+  waic_student <- WAIC(bayes_studentprior, bayes_intercept)
+  waic_elpd_diff_student <- waic_flat$diffs[2]
+  waic_se_diff_student <- waic_flat$diffs[4]
+  
+  #bayes model - oosterwijk prior 
+  oosterwijk_prior <- c(set_prior("student_t(3, 0.350, 0.102)", class = "b")) 
+  bayes_oosterwijkprior <- brm(formula = value ~ group, 
+                            data = data, 
+                            prior = oosterwijk_prior, 
+                            save_pars = save_pars(all = TRUE))
+  bayes_oosterwijk_test <- joint_tests(bayes_studentprior)
+  bayes_oosterwijk_pval <- bayes_oosterwijk_test$p.value
+  
+  #LOO & WAIC comparison 
+  loo_oosterwijk <- LOO(bayes_oosterwijkprior, bayes_intercept)
+  loo_elpd_diff_oosterwijk <- loo_oosterwijk$diffs[2]
+  loo_se_diff_oosterwijk <- loo_oosterwijk$diffs[4]
+  waic_oosterwijk <- WAIC(bayes_oosterwijkprior, bayes_intercept)
+  waic_elpd_diff_oosterwijk <- waic_oosterwijk$diffs[2]
+  waic_se_diff_oosterwijk <- waic_oosterwijk$diffs[4]
+  
+  #bayes factors - log values - the model stated in test is x1
+  bf_flatstudent_test <- bridgesampling::bayes_factor(bayes_flatprior, 
+                                                      bayes_studentprior, log = TRUE)
+  bf_flatstudent <- bf_flatstudent_test$bf
+  bf_flatoosterwijk_test <- bridgesampling::bayes_factor(bayes_flatprior, 
+                                                         bayes_oosterwijkprior, log = TRUE)
+  bf_flatoosterwijk <- bf_flatoosterwijk_test$bf
+  
+  bf_studentflat_test <- bridgesampling::bayes_factor(bayes_studentprior, 
+                                                      bayes_flatprior, log = TRUE)
+  bf_studentflat <- bf_studentflat_test$bf
+  bf_studentoosterwijk_test <- bridgesampling::bayes_factor(bayes_studentprior, 
+                                                            bayes_oosterwijkprior, log = TRUE)
+  bf_studentoosterwijk <- bf_studentoosterwijk_test$bf
+    
+  bf_oosterwijkflat_test <- bridgesampling::bayes_factor(bayes_oosterwijkprior, 
+                                                         bayes_flatprior, log = TRUE)
+  bf_oosterwijkflat <- bf_oosterwijkflat_test$bf
+  bf_oosterwijkstudent_test <- bridgesampling::bayes_factor(bayes_oosterwijkprior, 
+                                                            bayes_studentprior, log = TRUE)
+  bf_oosterwijkstudent <- bf_oosterwijkstudent_test$bf
+  
+  out_freq <- data.frame(n = sample_size, diff, se, 
+                         test = "freq", pval = freq_pval)
+  out_flatbayes <- data.frame(n = sample_size, diff, se, 
+                              test = "bayes_flatprior", pval = bayes_flat_pval, 
+                              loo = loo_elpd_diff_flat, 
+                              waic = waic_elpd_diff_flat, 
+                              bf_against_flat = NA,
+                              bf_against_student = bf_flatstudent, 
+                              bf_against_oosterwijk = bf_flatoosterwijk)
+  out_studentbayes <- data.frame(n = sample_size, diff, se, 
+                                 test = "bayes_studentprior", pval = bayes_flat_pval, 
+                                 loo = loo_elpd_diff_student, 
+                                 waic = waic_elpd_diff_student,
+                                 bf_against_flat = bf_studentflat, 
+                                 bf_against_student = NA,
+                                 bf_against_oosterwijk = bf_studentoosterwijk)
+  out_oosterwijkbayes <- data.frame(n = sample_size, diff, se, 
+                                    test = "bayes_oosterwijkprior", pval = bayes_oosterwijk_pval, 
+                                    loo = loo_elpd_diff_oosterwijk, 
+                                    waic = waic_elpd_diff_oosterwijk,
+                                    bf_against_flat = bf_oosterwijkflat, 
+                                    bf_against_student = bf_oosterwijkstudent, 
+                                    bf_against_oosterwijk = NA) 
+  out <- bind_rows(out_freq,
+                   out_flatbayes, 
+                   out_studentbayes, 
+                   out_oosterwijkbayes)
+}
+
+
+run <- function(iter, sample_size) {
+  results <- mclapply(X = 1:iter, FUN = fit, sample_size, mc.cores = 16)
+  save(results, file = paste0("simulation", "_n", sample_size, "_iter", iter, ".rda"))
+}
+
+run(iter = 50, sample_size = 20)
+
+```
+
+#3 group simulation
+```{r}
+fit <- function(i, sample_size) {
+  data <- data.frame(group = rep(c("control", "treatmentA", "treatmentB"), each = sample_size), 
+                     value = c(rnorm(n = sample_size), 
+                               rnorm(n = sample_size), 
+                               rnorm(n = sample_size)))
+  data$group <- factor(data$group)
+  
+  means <- data %>% group_by(group) %>% 
+    summarise(mean = mean(value)) %>% 
+    pivot_wider(names_from = group, values_from = mean) %>% 
+    mutate(diff_AC = treatmentA - control,
+           diff_AB = treatmentA - treatmentB,
+           diff_BC = treatmentB - control)
+  diff_AC <- means$diff_AC
+  diff_AB <- means$diff_AB
+  diff_BC <- means$diff_BC
+  
+  se <- sd(data$value)/(sqrt(sample_size))
+  
+  #freq model
+  freq <- lm(value ~ group, data)
+  freq_pval_A <- summary(freq)$coef[2, 4]
+  freq_pval_B <- summary(freq)$coef[3, 4]
+  joint_tests(freq)
+  
+  #bayes model - flat prior 
+  bayes_flatprior <- brm(formula = value ~ group, 
+                         data = data, save_pars = save_pars(all = TRUE))
+  bayes_flat_test <- joint_tests(bayes_flatprior)
+  bayes_flat_pval <- bayes_flat_test$p.value
+  
+  #LOO & WAIC comparison 
+  bayes_intercept <- brm(formula = value ~ 1, 
+                         data = data, 
+                         sample_prior = "yes") #intercept-only model 
+  
+  loo_flat <- LOO(bayes_flatprior, bayes_intercept)
+  loo_elpd_diff_flat <- loo_flat$diffs[2]
+  loo_se_diff_flat <- loo_flat$diffs[4]
+  
+  waic_flat <- WAIC(bayes_flatprior, bayes_intercept)
+  waic_elpd_diff_flat <- waic_flat$diffs[2]
+  waic_se_diff_flat <- waic_flat$diffs[4]
+  
+  
+  #bayes model - student prior 
+  student_prior <- c(set_prior("student_t(3 , 0, 1/sqrt(2))", class = "b")) 
+  bayes_studentprior <- brm(formula = value ~ group, 
+                            data = data, 
+                            prior = student_prior, 
+                            save_pars = save_pars(all = TRUE))
+  bayes_student_test <- joint_tests(bayes_studentprior)
+  bayes_student_pval <- bayes_student_test$p.value
+  #LOO & WAIC comparison 
+  loo_student <- LOO(bayes_studentprior, bayes_intercept)
+  loo_elpd_diff_student <- loo_student$diffs[2]
+  loo_se_diff_student <- loo_student$diffs[4]
+  
+  waic_student <- WAIC(bayes_studentprior, bayes_intercept)
+  waic_elpd_diff_student <- waic_flat$diffs[2]
+  waic_se_diff_student <- waic_flat$diffs[4]
+  
+  #bayes model - oosterwijk prior 
+  oosterwijk_prior <- c(set_prior("student_t(3, 0.350, 0.102)", class = "b")) 
+  bayes_oosterwijkprior <- brm(formula = value ~ group, 
+                            data = data, 
+                            prior = oosterwijk_prior, 
+                            save_pars = save_pars(all = TRUE))
+  bayes_oosterwijk_test <- joint_tests(bayes_studentprior)
+  bayes_oosterwijk_pval <- bayes_oosterwijk_test$p.value
+  
+  #LOO & WAIC comparison 
+  loo_oosterwijk <- LOO(bayes_oosterwijkprior, bayes_intercept)
+  loo_elpd_diff_oosterwijk <- loo_oosterwijk$diffs[2]
+  loo_se_diff_oosterwijk <- loo_oosterwijk$diffs[4]
+  waic_oosterwijk <- WAIC(bayes_oosterwijkprior, bayes_intercept)
+  waic_elpd_diff_oosterwijk <- waic_oosterwijk$diffs[2]
+  waic_se_diff_oosterwijk <- waic_oosterwijk$diffs[4]
+  
+  #bayes factors - log values - the model stated in test is x1
+  bf_flatstudent_test <- bridgesampling::bayes_factor(bayes_flatprior, 
+                                                      bayes_studentprior, log = TRUE)
+  bf_flatstudent <- bf_flatstudent_test$bf
+  bf_flatoosterwijk_test <- bridgesampling::bayes_factor(bayes_flatprior, 
+                                                         bayes_oosterwijkprior, log = TRUE)
+  bf_flatoosterwijk <- bf_flatoosterwijk_test$bf
+  
+  bf_studentflat_test <- bridgesampling::bayes_factor(bayes_studentprior, 
+                                                      bayes_flatprior, log = TRUE)
+  bf_studentflat <- bf_studentflat_test$bf
+  bf_studentoosterwijk_test <- bridgesampling::bayes_factor(bayes_studentprior, 
+                                                            bayes_oosterwijkprior, log = TRUE)
+  bf_studentoosterwijk <- bf_studentoosterwijk_test$bf
+    
+  bf_oosterwijkflat_test <- bridgesampling::bayes_factor(bayes_oosterwijkprior, 
+                                                         bayes_flatprior, log = TRUE)
+  bf_oosterwijkflat <- bf_oosterwijkflat_test$bf
+  bf_oosterwijkstudent_test <- bridgesampling::bayes_factor(bayes_oosterwijkprior, 
+                                                            bayes_studentprior, log = TRUE)
+  bf_oosterwijkstudent <- bf_oosterwijkstudent_test$bf
+  
+  #alternative p value from bayes factor 
+  null <- as.data.frame(bayes_intercept$fit)
+  lp_null <- mean(null$lp__)
+  lp_null_max <- max(null$lp__)
+
+  flat <- as.data.frame(bayes_flatprior$fit)
+  lp_flat <- mean(flat$lp__)
+  lp_flat_max <- max(flat$lp__)
+
+  ##test statistic model without priors
+  diff_flat <- lp_flat - lp_null
+  diff_flat_max <- lp_flat_max - lp_null_max
+  p_flat <- pchisq(diff_flat, df = 2, lower.tail = FALSE)
+  p_flat_max <- pchisq(diff_flat_max, df = 2, lower.tail = FALSE)
+  
+  student <- as.data.frame(bayes_studentprior$fit)
+  student <- student %>% 
+    mutate(
+      lp_student_new = student$lp__ - 
+        dlst(x = student$b_Intercept, df = 3, sigma = 1/sqrt(2), mu = 0, log = TRUE) - 
+        dlst(x = student$b_group1, df = 3, sigma = 1/sqrt(2), mu = 0, log = TRUE) 
+      )
+  lp_student <- mean(student$lp_student_new)
+  lp_student_max <- max(student$lp_student_new)
+  diff_student <- lp_student - lp_null
+  diff_student_max <- lp_student_max - lp_null_max
+  p_student <- pchisq(diff_student, df = 2, lower.tail = FALSE)
+  p_student_max <-pchisq(diff_student_max, df = 2, lower.tail = FALSE)
+  
+  oosterwijk <- as.data.frame(bayes_oosterwijkprior$fit)
+  oosterwijk <- oosterwijk %>% 
+    mutate(
+      lp_oosterwijk_new = oosterwijk$lp__ -
+        dlst(x = oosterwijk$b_Intercept, df = 3, 3, sigma = 0.102, mu = 0.350, log = TRUE) -
+        dlst(x = oosterwijk$b_group1, df = 3, sigma = 0.102, mu = 0.350, log = TRUE) 
+           )
+  lp_oosterwijk <- mean(oosterwijk$lp_oosterwijk_new)
+  lp_oosterwijk_max <- max(student$lp_student_new)
+  diff_oosterwijk <- lp_oosterwijk - lp_null
+  diff_oosterwijk_max <- lp_oosterwijk_max - lp_null_max
+  p_oosterwijk <- pchisq(diff_student, df = 2, lower.tail = FALSE)
+  p_oosterwijk_max <-pchisq(diff_student_max, df = 2, lower.tail = FALSE)
+    
+  out_freq <- data.frame(n = sample_size, diff_AB, diff_AC, diff_BC, se, 
+                         test = "freq", pval = freq_pval)
+  out_flatbayes <- data.frame(n = sample_size, diff_AB, diff_AC, diff_BC, se, 
+                              test = "bayes_flatprior", pval = bayes_flat_pval, 
+                              loo = loo_elpd_diff_flat, 
+                              waic = waic_elpd_diff_flat, 
+                              bf_against_flat = NA,
+                              bf_against_student = bf_flatstudent, 
+                              bf_against_oosterwijk = bf_flatoosterwijk)
+  out_studentbayes <- data.frame(n = sample_size, diff_AB, diff_AC, diff_BC, se, 
+                                 test = "bayes_studentprior", pval = bayes_flat_pval, 
+                                 loo = loo_elpd_diff_student, 
+                                 waic = waic_elpd_diff_student,
+                                 bf_against_flat = bf_studentflat, 
+                                 bf_against_student = NA,
+                                 bf_against_oosterwijk = bf_studentoosterwijk)
+  out_oosterwijkbayes <- data.frame(n = sample_size, diff_AB, diff_AC, diff_BC, se, 
+                                    test = "bayes_oosterwijkprior", pval = bayes_oosterwijk_pval, 
+                                    loo = loo_elpd_diff_oosterwijk, 
+                                    waic = waic_elpd_diff_oosterwijk,
+                                    bf_against_flat = bf_oosterwijkflat, 
+                                    bf_against_student = bf_oosterwijkstudent, 
+                                    bf_against_oosterwijk = NA) 
+  out <- bind_rows(out_freq,
+                   out_flatbayes, 
+                   out_studentbayes, 
+                   out_oosterwijkbayes)
+}
+
+run <- function(iter, sample_size) {
+  results <- mclapply(X = 1:iter, FUN = fit, sample_size, mc.cores = 16)
+  save(results, file = paste0("simulation", "_n", sample_size, "_iter", iter, ".rda"))
+}
+
+run(iter = 50, sample_size = 20)
+
+
+```
+
+#analysis 
+```{r}
+# type I error 
+alpha.p <- 0.05
+
+# number of simulations
+n.simulations <- 1000
+
+# number of observations in each simulation
+n.obs <- 100
+
+# a vector of test results
+type.one.error<-replicate(n.simulations, t.test(rnorm(n.obs),rnorm(n.obs),
+   var.equal=TRUE)$p.value)<alpha.p #number of times you reject the null hypothesis - TRUE, do not reject null hypothesis - FALSE
+
+# type I error for the whole simulation - prob of rejecting null hypothesis 
+ok <-data.frame(type.one.error) %>% count(type.one.error)
+47/(953 + 47)
+mean(type.one.error)
+
+
+# Store cumulative results in data frame for plotting
+sim <- data.frame(
+ n.simulations = 1:n.simulations, 
+ type.one.error.rate = cumsum(type.one.error) / seq_along(type.one.error))
+
+# alternative plot using ggplot2
+require(ggplot2)
+ggplot(sim, aes(x=n.simulations, y=type.one.error.rate)) + 
+    geom_line() + 
+    xlab('Number of simulations') +
+    ylab('Cumulative type I error rate') + 
+    ggtitle('Simulation of type I error in t-test') +
+    geom_abline(intercept = alpha.p, slope=0, col='red') +
+    theme_bw() 
+```
+
+
+```{r}
+
+#correlation between resp p val & difference
+cor_f_test <- cor.test(results$diff, groups_2$freq_pval)
+cor_freq <- cor_f_test$estimate
+cor_b_test <- cor.test(groups_2$diff, groups_2$bayes_pval)
+cor_bayes <- cor_b_test$estimate
+cor <- data.frame(cor_freq, cor_bayes)
+```
+
