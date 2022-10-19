@@ -1,0 +1,28 @@
+---
+title: "simulation_run"
+output: html_document
+---
+```{r}
+library(brms)
+library(rstanarm)
+library(bayestestR)
+library(BayesFactor)
+library(emmeans)
+library(parallel)
+library(bridgesampling)
+library(tidyverse)
+library(extraDistr)
+options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
+```
+
+```{r}
+source("simulation_source.R")
+
+results_2groups <- mclapply(X = 1:2, FUN = fit_2groups, sample_size = 10, mc.cores = 16)
+
+save(results_2groups, file = paste0("2_group_simulation", "_n", sample_size, "_iter", iter, ".rda"))
+
+try <- bind_rows(results, .id = "id")
+```
+
+
