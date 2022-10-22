@@ -14,11 +14,16 @@ fit_3groups <- function(i, sample_size) {
   #bayes model - null 
   bayes_intercept <- brm(formula = value ~ 1, 
                          data = data, 
-                         save_pars = save_pars(all = TRUE))
+                         save_pars = save_pars(all = TRUE), 
+                         iter = 11000, warmup = 1000,
+                         chains = 4, cores = 1)
   
   #bayes model - flat prior 
   bayes_flatprior <- brm(formula = value ~ group, 
-                         data = data, save_pars = save_pars(all = TRUE))
+                         data = data, 
+                         save_pars = save_pars(all = TRUE), 
+                         iter = 11000, warmup = 1000,
+                         chains = 4, cores = 1)
   bayes_flat_test <- joint_tests(bayes_flatprior)
   bayes_flat_pval <- bayes_flat_test$p.value
   
@@ -37,7 +42,9 @@ fit_3groups <- function(i, sample_size) {
   bayes_studentprior <- brm(formula = value ~ group, 
                             data = data, 
                             prior = student_prior, 
-                            save_pars = save_pars(all = TRUE))
+                            save_pars = save_pars(all = TRUE), 
+                            iter = 11000, warmup = 1000,
+                            chains = 4, cores = 1)
   bayes_student_test <- joint_tests(bayes_studentprior)
   bayes_student_pval <- bayes_student_test$p.value
   #LOO & WAIC comparison 
@@ -54,7 +61,9 @@ fit_3groups <- function(i, sample_size) {
   bayes_oosterwijkprior <- brm(formula = value ~ group, 
                                data = data, 
                                prior = oosterwijk_prior, 
-                               save_pars = save_pars(all = TRUE))
+                               save_pars = save_pars(all = TRUE), 
+                               iter = 11000, warmup = 1000,
+                               chains = 4, cores = 1)
   bayes_oosterwijk_test <- joint_tests(bayes_studentprior)
   bayes_oosterwijk_pval <- bayes_oosterwijk_test$p.value
   
@@ -160,6 +169,10 @@ fit_3groups <- function(i, sample_size) {
   return(out)
 }
 
+run_3groups <-  function(iter, sample_size) {
+  results <- mclapply(X = 1:iter, FUN = fit_3groups, sample_size, mc.cores = 16)
+  save(results, file = paste0("simulation_3groups", "_n", sample_size, "_iter", iter, ".rda"))
+}
 
 
 

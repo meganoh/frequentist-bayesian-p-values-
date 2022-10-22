@@ -21,12 +21,16 @@ fit_2groups <- function(i, sample_size) {
   #bayes model - null 
   bayes_intercept <- brm(formula = value ~ 1, 
                          data = data, 
-                         save_pars = save_pars(all = TRUE))
+                         save_pars = save_pars(all = TRUE), 
+                         iter = 11000, warmup = 1000,
+                         chains = 4, cores = 1)
   
   #bayes model - flat prior 
   bayes_flatprior <- brm(formula = value ~ group, 
                          data = data, 
-                         save_pars = save_pars(all = TRUE))
+                         save_pars = save_pars(all = TRUE), 
+                         iter = 11000, warmup = 1000,
+                         chains = 4, cores = 1)
   bayes_flat_test <- joint_tests(bayes_flatprior)
   bayes_flat_pval <- bayes_flat_test$p.value
   
@@ -44,7 +48,9 @@ fit_2groups <- function(i, sample_size) {
   bayes_studentprior <- brm(formula = value ~ group, 
                             data = data, 
                             prior = student_prior, 
-                            save_pars = save_pars(all = TRUE))
+                            save_pars = save_pars(all = TRUE), 
+                            iter = 11000, warmup = 1000,
+                            chains = 4, cores = 1)
   bayes_student_test <- joint_tests(bayes_studentprior)
   bayes_student_pval <- bayes_student_test$p.value
   
@@ -62,7 +68,9 @@ fit_2groups <- function(i, sample_size) {
   bayes_oosterwijkprior <- brm(formula = value ~ group, 
                                data = data, 
                                prior = oosterwijk_prior, 
-                               save_pars = save_pars(all = TRUE))
+                               save_pars = save_pars(all = TRUE), 
+                               iter = 11000, warmup = 1000,
+                               chains = 4, cores = 1)
   bayes_oosterwijk_test <- joint_tests(bayes_studentprior)
   bayes_oosterwijk_pval <- bayes_oosterwijk_test$p.value
   
@@ -135,6 +143,7 @@ fit_2groups <- function(i, sample_size) {
   
   out_freq <- data.frame(n = sample_size, diff, se, 
                          test = "freq", pval = freq_pval)
+  
   out_flatbayes <- data.frame(n = sample_size, diff, se, 
                               test = "bayes_flatprior", pval = bayes_flat_pval, 
                               loo = loo_elpd_diff_flat, 
@@ -168,3 +177,9 @@ fit_2groups <- function(i, sample_size) {
                    out_oosterwijkbayes)
   return(out)
 }
+
+run_2groups <-  function(iter, sample_size) {
+  results <- mclapply(X = 1:iter, FUN = fit_2groups, sample_size, mc.cores = 16)
+  save(results, file = paste0("simulation_2groups", "_n", sample_size, "_iter", iter, ".rda"))
+}
+
