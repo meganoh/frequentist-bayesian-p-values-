@@ -1,5 +1,5 @@
 #2 group simulation
-fit_2groups <- function(i, sample_size) {
+fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   data <- data.frame(group = rep(c("control", "treatmentA"), each = sample_size), 
                      value = c(rnorm(n = sample_size), 
                                rnorm(n = sample_size)))
@@ -22,14 +22,14 @@ fit_2groups <- function(i, sample_size) {
   bayes_intercept <- brm(formula = value ~ 1, 
                          data = data, 
                          save_pars = save_pars(all = TRUE), 
-                         iter = 11000, warmup = 1000,
+                         iter = mod_iter, warmup = mod_warmup,
                          chains = 4, cores = 1)
   
   #bayes model - flat prior 
   bayes_flatprior <- brm(formula = value ~ group, 
                          data = data, 
                          save_pars = save_pars(all = TRUE), 
-                         iter = 11000, warmup = 1000,
+                         iter = mod_iter, warmup = mod_warmup,
                          chains = 4, cores = 1)
   bayes_flat_test <- joint_tests(bayes_flatprior)
   bayes_flat_pval <- bayes_flat_test$p.value
@@ -49,7 +49,7 @@ fit_2groups <- function(i, sample_size) {
                             data = data, 
                             prior = student_prior, 
                             save_pars = save_pars(all = TRUE), 
-                            iter = 11000, warmup = 1000,
+                            iter = mod_iter, warmup = mod_warmup,
                             chains = 4, cores = 1)
   bayes_student_test <- joint_tests(bayes_studentprior)
   bayes_student_pval <- bayes_student_test$p.value
@@ -69,7 +69,7 @@ fit_2groups <- function(i, sample_size) {
                                data = data, 
                                prior = oosterwijk_prior, 
                                save_pars = save_pars(all = TRUE), 
-                               iter = 11000, warmup = 1000,
+                               iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
   bayes_oosterwijk_test <- joint_tests(bayes_studentprior)
   bayes_oosterwijk_pval <- bayes_oosterwijk_test$p.value
@@ -178,8 +178,8 @@ fit_2groups <- function(i, sample_size) {
   return(out)
 }
 
-run_2groups <-  function(iter, sample_size) {
-  results <- mclapply(X = 1:iter, FUN = fit_2groups, sample_size, mc.cores = 16)
-  save(results, file = paste0("simulation_2groups", "_n", sample_size, "_iter", iter, ".rda"))
+run_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
+  results_2groups <- mclapply(X = 1:iter, FUN = fit_2groups, sample_size, mod_iter, mod_warmup, mc.cores = 16)
+  save(results_2groups, file = paste0("simulation_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 }
 
