@@ -11,8 +11,12 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
     mutate(diff = treatmentA - control)
   diff <- means$diff
   
-  sd <- sqrt((1^2 + 1^2)/2)
-  se <- sd * sqrt(2/sample_size)
+  sd <- data %>% group_by(group) %>% 
+    summarise(sd = sd(value)) %>% 
+    pivot_wider(names_from = group, values_from = sd) %>% 
+    mutate(sd = sqrt((control^2 + treatmentA^2)/2)) %>% 
+    mutate(se = sd * sqrt(2/sample_size))
+  se <- sd$se
   
   #freq model
   freq <- lm(value ~ group, data)
