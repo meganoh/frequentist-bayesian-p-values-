@@ -12,7 +12,7 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   diff <- means$diff
   
   sd <- sqrt((1^2 + 1^2)/2)
-  se <- sd * sqrt(2/(2*sample_size))
+  se <- sd * sqrt(2/sample_size)
   
   #freq model
   freq <- lm(value ~ group, data)
