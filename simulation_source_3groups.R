@@ -166,11 +166,12 @@ fit_3groups <- function(i, sample_size, mod_iter, mod_warmup) {
                    out_flatbayes, 
                    out_studentbayes, 
                    out_oosterwijkbayes)
+  Sys.sleep(1)
   return(out)
 }
 
 run_3groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
-  results_3groups <- mclapply(X = 1:iter, FUN = fit_3groups, sample_size, mod_iter, mod_warmup, mc.cores = 16)
+  results_3groups <- mclapply(X = 1:iter, FUN = fit_3groups, sample_size, mod_iter, mod_warmup, mc.cores = 16, mc.preschedule = FALSE)
   save(results_3groups, file = paste0("simulation_3groups", "_n", sample_size, "_iter", iter, ".rda"))
 }
 
