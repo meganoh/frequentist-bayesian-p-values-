@@ -1,3 +1,4 @@
+setwd("~/dissertation")
 #set up 
 library(brms)
 library(rstanarm)
@@ -21,46 +22,56 @@ data <- data.frame(group = rep(c("control", "treatmentA"), each = sample_size),
                              rnorm(n = sample_size)))
 #bayes model - null 
 bayes_intercept_prefit <- brm(formula = value ~ 1, 
-                          data = data, 
-                          save_pars = save_pars(all = TRUE), 
-                          iter = mod_iter, warmup = mod_warmup,
-                          chains = 4, cores = 1)
+                              data = data, 
+                              save_pars = save_pars(all = TRUE), 
+                              iter = mod_iter, warmup = mod_warmup,
+                              chains = 4, cores = 1)
 
 #bayes model - flat prior 
 bayes_flatprior_prefit <- brm(formula = value ~ group, 
-                       data = data, 
-                       save_pars = save_pars(all = TRUE), 
-                       iter = mod_iter, warmup = mod_warmup,
-                       chains = 4, cores = 1)
+                              data = data, 
+                              save_pars = save_pars(all = TRUE), 
+                              iter = mod_iter, warmup = mod_warmup,
+                              chains = 4, cores = 1)
 
 #bayes model - student prior 
 student_prior <- c(set_prior("student_t(3, 0, 0.5)", class = "b")) 
 bayes_studentprior_prefit <- brm(formula = value ~ group, 
-                          data = data, 
-                          prior = student_prior, 
-                          save_pars = save_pars(all = TRUE), 
-                          iter = mod_iter, warmup = mod_warmup,
-                          chains = 4, cores = 1)
+                                 data = data, 
+                                 prior = student_prior, 
+                                 save_pars = save_pars(all = TRUE), 
+                                 iter = mod_iter, warmup = mod_warmup,
+                                 chains = 4, cores = 1)
 
 #bayes model - oosterwijk prior 
 oosterwijk_prior <- c(set_prior("student_t(3, 0.350, 0.102)", class = "b")) 
 bayes_oosterwijkprior_prefit <- brm(formula = value ~ group, 
-                             data = data, 
-                             prior = oosterwijk_prior, 
-                             save_pars = save_pars(all = TRUE), 
-                             iter = mod_iter, warmup = mod_warmup,
-                             chains = 4, cores = 1)
+                                    data = data, 
+                                    prior = oosterwijk_prior, 
+                                    save_pars = save_pars(all = TRUE), 
+                                    iter = mod_iter, warmup = mod_warmup,
+                                    chains = 4, cores = 1)
 
 #run simulation 
 source("simulation_source_2groups.R")
 source("simulation_source_3groups.R")
-
+group2 <- fit_2groups(sample_size = 20, 
+                      mod_iter = 11000, mod_warmup = 1000)
+group3 <- fit_3groups(sample_size = 20, 
+                      mod_iter = 11000, mod_warmup = 1000)
 
 run_2groups(iter = 1000, sample_size = 20, 
             mod_iter = 11000, mod_warmup = 1000)
 run_3groups(iter = 1000, sample_size = 20, 
             mod_iter = 11000, mod_warmup = 1000)
-
+run_2groups(iter = 1000, sample_size = 30, 
+            mod_iter = 11000, mod_warmup = 1000)
+run_3groups(iter = 1000, sample_size = 30, 
+            mod_iter = 11000, mod_warmup = 1000)
+run_2groups(iter = 1000, sample_size = 50, 
+            mod_iter = 11000, mod_warmup = 1000)
+run_3groups(iter = 1000, sample_size = 50, 
+            mod_iter = 11000, mod_warmup = 1000)
 
 #read in results 
 
