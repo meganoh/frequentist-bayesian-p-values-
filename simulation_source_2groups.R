@@ -23,22 +23,28 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   freq_pval <- summary(freq)$coef[2, 4]
   
   #bayes model - null 
-  bayes_intercept <- brm(formula = value ~ 1, 
-                         data = data, 
-                         save_pars = save_pars(all = TRUE), 
-                         iter = mod_iter, warmup = mod_warmup,
-                         chains = 4, cores = 1)
-  
+  bayes_intercept <- update(bayes_intercept_prefit, 
+                            newdata = data, recompile = FALSE)
+
   #bayes model - flat prior 
-  bayes_flatprior <- brm(formula = value ~ group, 
-                         data = data, 
-                         save_pars = save_pars(all = TRUE), 
-                         iter = mod_iter, warmup = mod_warmup,
-                         chains = 4, cores = 1)
+  bayes_flatprior <- update(bayes_flatprior_prefit, 
+                            newdata = data,  recompile = FALSE)
   bayes_flat_test <- joint_tests(bayes_flatprior)
   bayes_flat_pval <- bayes_flat_test$p.value
+
+  #bayes model - student prior 
+  bayes_studentprior <- update(bayes_studentprior_prefit, 
+                               newdata = data, recompile = FALSE)
+  bayes_student_test <- joint_tests(bayes_studentprior)
+  bayes_student_pval <- bayes_student_test$p.value
+
+  #bayes model - oosterwijk prior 
+  bayes_oosterwijkprior <- update(bayes_oosterwijkprior_prefit, 
+                                  newdata = data, recompile = FALSE)
+  bayes_oosterwijk_test <- joint_tests(bayes_studentprior)
+  bayes_oosterwijk_pval <- bayes_oosterwijk_test$p.value
   
-  #LOO & WAIC comparison 
+  #LOO & WAIC comparison - flat
   loo_flat <- LOO(bayes_flatprior, bayes_intercept)
   loo_elpd_diff_flat <- loo_flat$diffs[2]
   loo_se_diff_flat <- loo_flat$diffs[4]
@@ -46,17 +52,6 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   waic_flat <- WAIC(bayes_flatprior, bayes_intercept)
   waic_elpd_diff_flat <- waic_flat$diffs[2]
   waic_se_diff_flat <- waic_flat$diffs[4]
-  
-  #bayes model - student prior 
-  student_prior <- c(set_prior("student_t(3, 0, 0.5)", class = "b")) 
-  bayes_studentprior <- brm(formula = value ~ group, 
-                            data = data, 
-                            prior = student_prior, 
-                            save_pars = save_pars(all = TRUE), 
-                            iter = mod_iter, warmup = mod_warmup,
-                            chains = 4, cores = 1)
-  bayes_student_test <- joint_tests(bayes_studentprior)
-  bayes_student_pval <- bayes_student_test$p.value
   
   #LOO & WAIC comparison 
   loo_student <- LOO(bayes_studentprior, bayes_intercept)
@@ -67,25 +62,14 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   waic_elpd_diff_student <- waic_flat$diffs[2]
   waic_se_diff_student <- waic_flat$diffs[4]
   
-  #bayes model - oosterwijk prior 
-  oosterwijk_prior <- c(set_prior("student_t(3, 0.350, 0.102)", class = "b")) 
-  bayes_oosterwijkprior <- brm(formula = value ~ group, 
-                               data = data, 
-                               prior = oosterwijk_prior, 
-                               save_pars = save_pars(all = TRUE), 
-                               iter = mod_iter, warmup = mod_warmup,
-                               chains = 4, cores = 1)
-  bayes_oosterwijk_test <- joint_tests(bayes_studentprior)
-  bayes_oosterwijk_pval <- bayes_oosterwijk_test$p.value
-  
-  #LOO & WAIC comparison 
+  #LOO & WAIC comparison - oosterwijk
   loo_oosterwijk <- LOO(bayes_oosterwijkprior, bayes_intercept)
   loo_elpd_diff_oosterwijk <- loo_oosterwijk$diffs[2]
-  loo_se_diff_oosterwijsk <- loo_oosterwijk$diffs[4]
-  
+  loo_se_diff_oosterwijk <- loo_oosterwijk$diffs[4]
   waic_oosterwijk <- WAIC(bayes_oosterwijkprior, bayes_intercept)
   waic_elpd_diff_oosterwijk <- waic_oosterwijk$diffs[2]
   waic_se_diff_oosterwijk <- waic_oosterwijk$diffs[4]
+  
   
   #bayes factors 
   bf_flat_test <- bridgesampling::bayes_factor(bayes_intercept, 
@@ -161,16 +145,16 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
                                  test = "bayes_studentprior", pval = bayes_flat_pval, 
                                  loo = loo_elpd_diff_student, 
                                  waic = waic_elpd_diff_student,
-                                 bf = bf_student, 
+                                 bf = bf_student,
                                  lp_diff = diff_student,
                                  lp_diff_max = diff_student_max,
                                  p_likelihood = p_student,
                                  p_likelihood_max = p_student_max)
   out_oosterwijkbayes <- data.frame(n = sample_size, diff, se, 
-                                    test = "bayes_oosterwijkprior", pval = bayes_oosterwijk_pval, 
+                                    test = "bayes_oosterwijkprior", pval = bayes_oosterwijk_pval,
                                     loo = loo_elpd_diff_oosterwijk, 
                                     waic = waic_elpd_diff_oosterwijk,
-                                    bf = bf_oosterwijk, 
+                                    bf = bf_oosterwijk,
                                     lp_diff = diff_oosterwijk,
                                     lp_diff_max = diff_oosterwijk_max,
                                     p_likelihood = p_oosterwijk, 
@@ -179,12 +163,13 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
                    out_flatbayes, 
                    out_studentbayes, 
                    out_oosterwijkbayes)
-  Sys.sleep(1)
   return(out)
 }
 
 run_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
-  results_2groups <- mclapply(X = 1:iter, FUN = fit_2groups, sample_size, mod_iter, mod_warmup, mc.cores = 16, mc.preschedule = FALSE)
+  results_2groups <- mclapply(X = 1:iter, 
+                              FUN = fit_2groups, sample_size, mod_iter, mod_warmup, 
+                              mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
   save(results_2groups, file = paste0("simulation_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 }
 

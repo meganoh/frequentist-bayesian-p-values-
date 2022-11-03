@@ -11,13 +11,49 @@ library(tidyverse)
 library(extraDistr)
 options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
 options(brms.backend = "rstan")
-help('brms')
-vignette("brms_overview")
+
+sample_size = 30
+mod_iter = 11000
+mod_warmup = 1000
+#first fit models
+data <- data.frame(group = rep(c("control", "treatmentA"), each = sample_size), 
+                   value = c(rnorm(n = sample_size), 
+                             rnorm(n = sample_size)))
+#bayes model - null 
+bayes_intercept_prefit <- brm(formula = value ~ 1, 
+                          data = data, 
+                          save_pars = save_pars(all = TRUE), 
+                          iter = mod_iter, warmup = mod_warmup,
+                          chains = 4, cores = 1)
+
+#bayes model - flat prior 
+bayes_flatprior_prefit <- brm(formula = value ~ group, 
+                       data = data, 
+                       save_pars = save_pars(all = TRUE), 
+                       iter = mod_iter, warmup = mod_warmup,
+                       chains = 4, cores = 1)
+
+#bayes model - student prior 
+student_prior <- c(set_prior("student_t(3, 0, 0.5)", class = "b")) 
+bayes_studentprior_prefit <- brm(formula = value ~ group, 
+                          data = data, 
+                          prior = student_prior, 
+                          save_pars = save_pars(all = TRUE), 
+                          iter = mod_iter, warmup = mod_warmup,
+                          chains = 4, cores = 1)
+
+#bayes model - oosterwijk prior 
+oosterwijk_prior <- c(set_prior("student_t(3, 0.350, 0.102)", class = "b")) 
+bayes_oosterwijkprior_prefit <- brm(formula = value ~ group, 
+                             data = data, 
+                             prior = oosterwijk_prior, 
+                             save_pars = save_pars(all = TRUE), 
+                             iter = mod_iter, warmup = mod_warmup,
+                             chains = 4, cores = 1)
 
 #run simulation 
 source("simulation_source_2groups.R")
 source("simulation_source_3groups.R")
-load("simulation_3groups_n20_iter1000.rda", envir = parent.frame(), verbose = FALSE)
 
 
 run_2groups(iter = 1000, sample_size = 20, 
@@ -25,13 +61,8 @@ run_2groups(iter = 1000, sample_size = 20,
 run_3groups(iter = 1000, sample_size = 20, 
             mod_iter = 11000, mod_warmup = 1000)
 
-results_2groups <- mclapply(X = 1:32, FUN = fit_2groups, sample_size = 20, 
-                            mod_iter = 11000, mod_warmup = 1000, mc.cores = 16, 
-                            mc.preschedule = FALSE)
-save(results_2groups, file = paste0("simulation_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 
-load("simulation_2groups_n20_iter1000.rda")
 #read in results 
 
-n_20_iter_5 <- bind_rows(results, .id = "id")
+group_2_n_20 <- bind_rows(results_2groups, .id = "id")
 n_20_iter10 <- bind_rows(results_2groups, .id = "id")
