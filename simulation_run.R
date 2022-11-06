@@ -55,25 +55,8 @@ bayes_oosterwijkprior_prefit <- brm(formula = value ~ group,
 #run simulation 
 source("simulation_source_2groups.R")
 source("simulation_source_3groups.R")
-group2 <- fit_2groups(sample_size = 20, 
-                      mod_iter = 11000, mod_warmup = 1000)
-group3 <- fit_3groups(sample_size = 20, 
-                      mod_iter = 11000, mod_warmup = 1000)
 
-run_2groups(iter = 1000, sample_size = 20, 
+run_2groups(iter = 1000, sample_size = 100, 
             mod_iter = 11000, mod_warmup = 1000)
-run_3groups(iter = 1000, sample_size = 20, 
+run_3groups(iter = 1000, sample_size = 100, 
             mod_iter = 11000, mod_warmup = 1000)
-run_2groups(iter = 1000, sample_size = 30, 
-            mod_iter = 11000, mod_warmup = 1000)
-run_3groups(iter = 1000, sample_size = 30, 
-            mod_iter = 11000, mod_warmup = 1000)
-run_2groups(iter = 1000, sample_size = 50, 
-            mod_iter = 11000, mod_warmup = 1000)
-run_3groups(iter = 1000, sample_size = 50, 
-            mod_iter = 11000, mod_warmup = 1000)
-
-#read in results 
-
-group_2_n_20 <- bind_rows(results_2groups, .id = "id")
-n_20_iter10 <- bind_rows(results_2groups, .id = "id")
