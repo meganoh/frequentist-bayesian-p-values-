@@ -1,0 +1,299 @@
+---
+title: "simple linear regression analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(brms)
+library(rstanarm)
+library(bayestestR)
+library(BayesFactor)
+library(cmdstanr)
+library(emmeans)
+library(parallel)
+library(bridgesampling)
+library(tidyverse)
+library(extraDistr)
+library(binom)
+```
+
+```{r}
+#read in results 
+group_2_n_20 <- bind_rows(results_2groups, .id = "id")
+
+alpha <- 0.05 #set threshold for significance 
+iter = 1000
+```
+
+
+#2 group 
+```{r}
+twogroups <- bind_rows(group_2_n_20, group_2_n_30, group_2_n_50, group_2_n_100)
+threegroups <- bind_cols(group_3_n_20, group_3_n_50, group_3_n_30, group_3_n_100)
+```
+
+
+##type 1 err 
+```{r}
+#n20
+group_2_n_20 <- group_2_n_20 %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+
+wald_2group_n20 <- group_2_n_20 %>% 
+  group_by(test) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 20)
+
+likelihood_2group_n20 <- group_2_n_20 %>% 
+  group_by(test) %>% 
+  count(likelihood_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 20)
+
+likelihoodmax_2group_n20 <- group_2_n_20 %>% 
+  group_by(test) %>% 
+  count(likelihood_max_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_max_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 20)
+
+#n30
+group_2_n_30 <- group_2_n_30 %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) 
+
+wald_2group_n30 <- group_2_n_30 %>% 
+  group_by(test) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 30)
+
+likelihood_2group_n30 <- group_2_n_30 %>% 
+  group_by(test) %>% 
+  count(likelihood_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 30)
+
+likelihoodmax_2group_n30 <- group_2_n_30 %>% 
+  group_by(test) %>% 
+  count(likelihood_max_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_max_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 30)
+
+#n50
+group_2_n_50 <- group_2_n_50 %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) 
+
+wald_2group_n50 <- group_2_n_50 %>% 
+  group_by(test) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 50)
+
+likelihood_2group_n50 <- group_2_n_50 %>% 
+  group_by(test) %>% 
+  count(likelihood_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 50)
+
+likelihoodmax_2group_n50 <- group_2_n_50 %>% 
+  group_by(test) %>% 
+  count(likelihood_max_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_max_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 50)
+
+#n100
+group_2_n_100 <- group_2_n_100 %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) 
+
+wald_2group_n100 <- group_2_n_100 %>% 
+  group_by(test) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 100)
+
+likelihood_2group_n100 <- group_2_n_100 %>% 
+  group_by(test) %>% 
+  count(likelihood_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 100)
+
+likelihoodmax_2group_n100 <- group_2_n_100 %>% 
+  group_by(test) %>% 
+  count(likelihood_max_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_max_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 100)
+
+#combine results 
+wald_2group <- bind_rows(wald_2group_n20, wald_2group_n30, wald_2group_n50, wald_2group_n100) 
+
+wald_2group <- wald_2group %>% mutate(type = "wald")
+likelihood_2group <- bind_rows(likelihood_2group_n20, likelihood_2group_n30, likelihood_2group_n50, likelihood_2group_n100)
+likelihood_2group <- likelihood_2group %>% mutate(type = "likelihood")
+likelihoodmax_2group <- bind_rows(likelihoodmax_2group_n20, likelihoodmax_2group_n30, likelihoodmax_2group_n50, likelihoodmax_2group_n100)
+likelihoodmax_2group <- likelihoodmax_2group %>% mutate(type = "likelihoodmax")
+typeIerr_2group <- bind_rows(wald_2group, likelihood_2group, likelihoodmax_2group)
+
+rm(wald_2group_n20, wald_2group_n30, wald_2group_n50, wald_2group_n100,
+   likelihood_2group_n20, likelihood_2group_n30, likelihood_2group_n50, likelihood_2group_n100, 
+   likelihoodmax_2group_n20, likelihoodmax_2group_n30, likelihoodmax_2group_n50, likelihoodmax_2group_n100)
+```
+
+##histogram 
+```{r}
+#wald 
+ggplot(twogroups, aes(x = pval)) + 
+  geom_histogram(aes(y = after_stat(density))) + 
+  facet_grid(test ~ n)
+
+#likelihood
+ggplot(twogroups, aes(x = p_likelihood_max)) + 
+  geom_histogram(aes(y = after_stat(density))) + 
+  facet_grid(test ~ n)
+```
+
+##conf int 
+```{r}
+wald_2group <- wald_2group %>% mutate(ci = 
+)
+bayes_confint <- binom.bayes(wald_2group$sig, 1000, conf.level = 0.95) %>% select(-method, -n, )
+
+confint <- binom.confint(wald_2group$sig, 1000, conf.level = 0.95, methods = "all") %>% pivot_wider(names_from = "method", values_from = c(mean:upper))
+```
+
+
+
+#3 group 
+```{r}
+#n20
+group_3_n_20 <- group_3_n_20 %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+
+wald_3group_n20 <- group_3_n_20 %>% 
+  group_by(test) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 20)
+
+likelihood_3group_n20 <- group_3_n_20 %>% 
+  group_by(test) %>% 
+  count(likelihood_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 20)
+
+likelihoodmax_3group_n20 <- group_3_n_20 %>% 
+  group_by(test) %>% 
+  count(likelihood_max_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_max_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 20)
+
+#n30
+group_3_n_30 <- group_3_n_30 %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) 
+
+wald_3group_n30 <- group_3_n_30 %>% 
+  group_by(test) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 30)
+
+likelihood_3group_n30 <- group_3_n_30 %>% 
+  group_by(test) %>% 
+  count(likelihood_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 30)
+
+likelihoodmax_3group_n30 <- group_3_n_30 %>% 
+  group_by(test) %>% 
+  count(likelihood_max_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_max_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 30)
+
+#n50
+group_3_n_50 <- group_3_n_50 %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) 
+
+wald_3group_n50 <- group_3_n_50 %>% 
+  group_by(test) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 50)
+
+likelihood_3group_n50 <- group_3_n_50 %>% 
+  group_by(test) %>% 
+  count(likelihood_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 50)
+
+likelihoodmax_3group_n50 <- group_3_n_50 %>% 
+  group_by(test) %>% 
+  count(likelihood_max_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_max_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 50)
+
+#n100
+group_3_n_100 <- group_3_n_100 %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) 
+
+wald_3group_n100 <- group_3_n_100 %>% 
+  group_by(test) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 100)
+
+likelihood_3group_n100 <- group_3_n_100 %>% 
+  group_by(test) %>% 
+  count(likelihood_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 100)
+
+likelihoodmax_3group_n100 <- group_3_n_100 %>% 
+  group_by(test) %>% 
+  count(likelihood_max_sig) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "likelihood_max_sig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter, n = 100)
+
+#combine results 
+wald_3group <- bind_rows(wald_3group_n20, wald_3group_n30, wald_3group_n50, wald_3group_n100)
+likelihood_3group <- bind_rows(likelihood_3group_n20, likelihood_3group_n30, likelihood_3group_n50, likelihood_3group_n100)
+likelihoodmax_3group <- bind_rows(likelihoodmax_3group_n20, likelihoodmax_3group_n30, likelihoodmax_3group_n50, likelihoodmax_3group_n100)
+
+rm(wald_3group_n20, wald_3group_n30, wald_3group_n50, wald_3group_n100,
+   likelihood_3group_n20, likelihood_3group_n30, likelihood_3group_n50, likelihood_3group_n100, 
+   likelihoodmax_3group_n20, likelihoodmax_3group_n30, likelihoodmax_3group_n50, likelihoodmax_3group_n100å)
+```
+
+
+
+
