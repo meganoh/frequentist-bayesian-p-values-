@@ -109,7 +109,7 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   student <- student %>% 
     mutate(
       lp_student_new = student$lp__ - 
-        dlst(x = student$b_group1, df = 3, sigma = 1/sqrt(2), mu = 0, log = TRUE) 
+        dlst(x = student$b_group1, df = 3, sigma = 0.5, mu = 0, log = TRUE) 
     )
   lp_student <- mean(student$lp_student_new)
   lp_student_max <- max(student$lp_student_new)

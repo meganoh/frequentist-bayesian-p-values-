@@ -19,7 +19,7 @@ library(binom)
 
 ```{r}
 #read in results 
-group_2_n_20 <- bind_rows(results_2groups, .id = "id")
+group_3_n_100 <- bind_rows(results_3groups, .id = "id")
 
 alpha <- 0.05 #set threshold for significance 
 iter = 1000
@@ -29,7 +29,8 @@ iter = 1000
 #2 group 
 ```{r}
 twogroups <- bind_rows(group_2_n_20, group_2_n_30, group_2_n_50, group_2_n_100)
-threegroups <- bind_cols(group_3_n_20, group_3_n_50, group_3_n_30, group_3_n_100)
+threegroups <- bind_rows(group_3_n_20, group_3_n_50, group_3_n_30, group_3_n_100)
+save(typeIerr_3group, file = "typeIerr_3group.rda")
 ```
 
 
@@ -158,27 +159,44 @@ rm(wald_2group_n20, wald_2group_n30, wald_2group_n50, wald_2group_n100,
 ```{r}
 #wald 
 ggplot(twogroups, aes(x = pval)) + 
-  geom_histogram(aes(y = after_stat(density))) + 
-  facet_grid(test ~ n)
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(test ~ n)  + 
+  geom_vline(xintercept = .05)
+
+#likelihood
+ggplot(twogroups, aes(x = p_likelihood)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(test ~ n)  + 
+  geom_vline(xintercept = .05)
 
 #likelihood
 ggplot(twogroups, aes(x = p_likelihood_max)) + 
-  geom_histogram(aes(y = after_stat(density))) + 
-  facet_grid(test ~ n)
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(test ~ n)  + 
+  geom_vline(xintercept = .05)
 ```
+
+##bf 
+```{r}
+ggplot(twogroups, aes(x = bf)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05) + 
+  facet_grid(test ~ n)  + 
+  geom_vline(xintercept = .05)
+```
+
 
 ##conf int 
 ```{r}
-wald_2group <- wald_2group %>% mutate(ci = 
-)
-bayes_confint <- binom.bayes(wald_2group$sig, 1000, conf.level = 0.95) %>% select(-method, -n, )
+wald_2group <- wald_2group 
+binom.bayes(typeIerr_2group$sig, 1000, conf.level = 0.95)
 
-confint <- binom.confint(wald_2group$sig, 1000, conf.level = 0.95, methods = "all") %>% pivot_wider(names_from = "method", values_from = c(mean:upper))
+binom.confint(twogroups$pval, 1000, conf.level = 0.95, methods = "all")
 ```
 
 
 
 #3 group 
+##type 1 err 
 ```{r}
 #n20
 group_3_n_20 <- group_3_n_20 %>% 
@@ -289,11 +307,53 @@ wald_3group <- bind_rows(wald_3group_n20, wald_3group_n30, wald_3group_n50, wald
 likelihood_3group <- bind_rows(likelihood_3group_n20, likelihood_3group_n30, likelihood_3group_n50, likelihood_3group_n100)
 likelihoodmax_3group <- bind_rows(likelihoodmax_3group_n20, likelihoodmax_3group_n30, likelihoodmax_3group_n50, likelihoodmax_3group_n100)
 
+#combine results 
+wald_3group <- bind_rows(wald_3group_n20, wald_3group_n30, wald_3group_n50, wald_3group_n100) 
+wald_3group <- wald_3group %>% mutate(type = "wald")
+
+likelihood_3group <- bind_rows(likelihood_3group_n20, likelihood_3group_n30, likelihood_3group_n50, likelihood_3group_n100)
+likelihood_3group <- likelihood_3group %>% mutate(type = "likelihood")
+
+likelihoodmax_3group <- bind_rows(likelihoodmax_3group_n20, likelihoodmax_3group_n30, likelihoodmax_3group_n50, likelihoodmax_3group_n100)
+likelihoodmax_3group <- likelihoodmax_3group %>% mutate(type = "likelihoodmax")
+
+typeIerr_3group <- bind_rows(wald_3group, likelihood_3group, likelihoodmax_3group)
+
 rm(wald_3group_n20, wald_3group_n30, wald_3group_n50, wald_3group_n100,
    likelihood_3group_n20, likelihood_3group_n30, likelihood_3group_n50, likelihood_3group_n100, 
-   likelihoodmax_3group_n20, likelihoodmax_3group_n30, likelihoodmax_3group_n50, likelihoodmax_3group_n100å)
+   likelihoodmax_3group_n20, likelihoodmax_3group_n30, likelihoodmax_3group_n50, likelihoodmax_3group_n100)
 ```
 
+##histogram 
+```{r}
+#wald 
+ggplot(threegroups, aes(x = pval)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05) + 
+  facet_grid(test ~ n) + 
+  geom_vline(xintercept = .05)
+
+#likelihood
+ggplot(threegroups, aes(x = p_likelihood_max)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05) + 
+  facet_grid(test ~ n) + 
+  geom_vline(xintercept = .05)
+```
+
+
+#loo & waic 
+```{r}
+twogroups <- twogroups %>% mutate(loo_fp = 
+  if_else(loo_diff > 2*loo_se, TRUE, FALSE), 
+  waic_fp = 
+  if_else(waic_diff > 2*waic_se, TRUE, FALSE)
+)
+
+threegroups <- threegroups %>% mutate(loo_fp = 
+  if_else(loo_diff > 2*loo_se, TRUE, FALSE), 
+  waic_fp = 
+  if_else(waic_diff > 2*waic_se, TRUE, FALSE)
+)  
+```
 
 
 

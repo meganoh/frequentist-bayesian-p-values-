@@ -33,6 +33,7 @@ bayes_flatprior_prefit <- brm(formula = value ~ group,
                               save_pars = save_pars(all = TRUE), 
                               iter = mod_iter, warmup = mod_warmup,
                               chains = 4, cores = 1)
+bayes_flatprior_prefit$model
 
 #bayes model - student prior 
 student_prior <- c(set_prior("student_t(3, 0, 0.5)", class = "b")) 
@@ -42,6 +43,16 @@ bayes_studentprior_prefit <- brm(formula = value ~ group,
                                  save_pars = save_pars(all = TRUE), 
                                  iter = mod_iter, warmup = mod_warmup,
                                  chains = 4, cores = 1)
+
+#bayes model - student prior 
+student2_prior <- c(set_prior("student_t(3, 0, 0.2)", class = "b")) 
+bayes_studentprior_prefit <- brm(formula = value ~ group, 
+                                 data = data, 
+                                 prior = student_prior, 
+                                 save_pars = save_pars(all = TRUE), 
+                                 iter = mod_iter, warmup = mod_warmup,
+                                 chains = 4, cores = 1)
+
 
 #bayes model - oosterwijk prior 
 oosterwijk_prior <- c(set_prior("student_t(3, 0.350, 0.102)", class = "b")) 
