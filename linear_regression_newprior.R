@@ -42,10 +42,12 @@ fit_tighter2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   bf_tighter <- bf_tighter_test$bf
   
   out <- data.frame(n = sample_size, diff, se, 
-                              test = "bayes_tighterprior", pval = bayes_tighter_pval, 
-                              loo = loo_se_diff_tighter, 
-                              waic = waic_se_diff_tighter, 
-                              bf = bf_tighter)
+                    test = "bayes_tighterprior", pval = bayes_tighter_pval, 
+                    loo_diff = loo_elpd_diff_tighter, 
+                    loo_se = loo_se_diff_tighter,
+                    waic_diff = waic_elpd_diff_tighter,
+                    waic_se = waic_se_diff_tighter,
+                    bf = bf_tighter)
   
   return(out)
 }
@@ -90,10 +92,12 @@ fit_tighter3groups <- function(i, sample_size, mod_iter, mod_warmup) {
   bf_tighter <- bf_tighter_test$bf
   
   out <- data.frame(n = sample_size, 
-                              test = "bayes_tighterprior", pval = bayes_tighter_pval, 
-                              loo = loo_se_diff_tighter, 
-                              waic = waic_se_diff_tighter, 
-                              bf = bf_tighter)
+                    test = "bayes_tighterprior", pval = bayes_tighter_pval, 
+                    loo_diff = loo_elpd_diff_tighter, 
+                    loo_se = loo_se_diff_tighter,
+                    waic_diff = waic_elpd_diff_tighter,
+                    waic_se = waic_se_diff_tighter,
+                    bf = bf_tighter)
   return(out)
 }
   

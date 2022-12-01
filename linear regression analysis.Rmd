@@ -19,10 +19,11 @@ library(binom)
 
 ```{r}
 #read in results 
-group_3_n_100 <- bind_rows(results_3groups, .id = "id")
-
+tighter3_n20 <- bind_rows(results_3groups, .id = "id")
 alpha <- 0.05 #set threshold for significance 
 iter = 1000
+
+threegroups <- bind_rows(threegroups, tighter3_n20, tighter3_n30, tighter3_n50, tighter3_n100)
 ```
 
 
@@ -30,7 +31,7 @@ iter = 1000
 ```{r}
 twogroups <- bind_rows(group_2_n_20, group_2_n_30, group_2_n_50, group_2_n_100)
 threegroups <- bind_rows(group_3_n_20, group_3_n_50, group_3_n_30, group_3_n_100)
-save(typeIerr_3group, file = "typeIerr_3group.rda")
+save(threegroups, file = "simulation_2groups.rda")
 ```
 
 
