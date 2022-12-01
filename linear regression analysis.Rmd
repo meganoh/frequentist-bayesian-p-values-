@@ -34,7 +34,7 @@ save(typeIerr_3group, file = "typeIerr_3group.rda")
 ```
 
 
-##type 1 err 
+##p values - type 1 err 
 ```{r}
 #n20
 group_2_n_20 <- group_2_n_20 %>% 
@@ -178,6 +178,10 @@ ggplot(twogroups, aes(x = p_likelihood_max)) +
 
 ##bf 
 ```{r}
+#bf - x1/x2 so higher --> preference for int, lower - x2 
+twogroups <- twogroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "other"))
+
+
 ggplot(twogroups, aes(x = bf)) + 
   geom_histogram(aes(y = after_stat(density)), binwidth = .05) + 
   facet_grid(test ~ n)  + 

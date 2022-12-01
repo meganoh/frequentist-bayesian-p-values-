@@ -13,10 +13,8 @@ options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
 options(brms.backend = "rstan")
 library("extraDistr")
 
-sample_size = 20
-mod_iter = 11000
-mod_warmup = 1000
-
+source("logistic_regression_2groups.R")
+source("logistic_regression_3groups.R")
 
 prob <- rbeta(1, 2, 2)
 
@@ -42,51 +40,20 @@ bayes_flatprior_prefit <- brm(formula = value ~ group,
 
 tighter_prior <- c(set_prior("student_t(3, 0, 0.2)", class = "b")) 
 bayes_tighterprior_prefit <- brm(formula = value ~ group, 
-                              data = data, 
-                              family = bernoulli(),
-                              prior = tighter_prior,
-                              save_pars = save_pars(all = TRUE), 
-                              iter = mod_iter, warmup = mod_warmup,
-                              chains = 4, cores = 1)
+                                 data = data, 
+                                 family = bernoulli(),
+                                 prior = tighter_prior,
+                                 save_pars = save_pars(all = TRUE), 
+                                 iter = mod_iter, warmup = mod_warmup,
+                                 chains = 4, cores = 1)
 
 wider_prior <- c(set_prior("student_t(3, 0, 0.5)", class = "b")) 
 bayes_widerprior_prefit <- brm(formula = value ~ group, 
-                              data = data, 
-                              family = bernoulli(),
-                              prior = wider_prior,
-                              save_pars = save_pars(all = TRUE), 
-                              iter = mod_iter, warmup = mod_warmup,
-                              chains = 4, cores = 1)
-summary(bayes_stanprior_prefit)
-prior_summary(bayes_intercept_prefit)
-bayes_flatprior_prefit$model
+                               data = data, 
+                               family = bernoulli(),
+                               prior = wider_prior,
+                               save_pars = save_pars(all = TRUE), 
+                               iter = mod_iter, warmup = mod_warmup,
+                               chains = 4, cores = 1)
 
-get_prior(formula = value ~ group, 
-          data = data, 
-          family = bernoulli())
-
-n <- 1e5
-?loo()
-#plot prior distribution 
-yy <- rlst(n, df = 3, mu = 0.35, sigma = 0.5)
-
-xx <- rlst(n, df = 3, mu = 0, sigma = 0.5)
-
-#pass through logit to see prior distribution in log & therefore the effects on the model 
-hist(plogis(xx + yy), breaks = seq(0, 1, by = 0.05))
-?plogis()
-
-?rlst()
-
-#beta distribution for probabilities 
-rbeta(2, 2, 2)
-gfg = seq(0,1, by=0.1)
-
-plot(gfg, dbeta(gfg, 2,1), xlab = "X",
-     ylab = "Beta Density", type = "l",
-     col = "Red")
-
-
-
-
-  
+logrun_3groups(iter = 1, sample_size = 10, mod_iter = 1100, mod_warmup = 1000)

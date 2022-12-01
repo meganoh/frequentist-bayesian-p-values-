@@ -179,4 +179,3 @@ run_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
                               mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
   save(results_2groups, file = paste0("simulation_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 }
-
