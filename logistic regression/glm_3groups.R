@@ -1,4 +1,4 @@
-log_3groups <- function(i, sample_size, mod_iter, mod_warmup){
+glm_3groups <- function(i, sample_size, mod_iter, mod_warmup){
   prob <- rbeta(1, 2, 2)
   
   data <- data.frame(group = rep(c("control", "treatmentA", "treatmentB"), each = sample_size), 
@@ -111,9 +111,9 @@ log_3groups <- function(i, sample_size, mod_iter, mod_warmup){
   return(out)
 }
 
-logrun_3groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
-  results_3groups <- mclapply(X = 1:iter, 
-                              FUN = log_3groups, sample_size, mod_iter, mod_warmup, 
+glmrun_3groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
+  glmresults_3groups <- mclapply(X = 1:iter, 
+                              FUN = glm_3groups, sample_size, mod_iter, mod_warmup, 
                               mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
-  save(results_3groups, file = paste0("logistic_3groups", "_n", sample_size, "_iter", iter, ".rda"))
+  save(glmresults_3groups, file = paste0("glm_3groups", "_n", sample_size, "_iter", iter, ".rda"))
 }

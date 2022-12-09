@@ -13,8 +13,8 @@ options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
 options(brms.backend = "rstan")
 library("extraDistr")
 
-source("logistic_regression_2groups.R")
-source("logistic_regression_3groups.R")
+source("glm_2groups.R")
+source("glm_3groups.R")
 
 prob <- rbeta(1, 2, 2)
 
@@ -56,4 +56,4 @@ bayes_widerprior_prefit <- brm(formula = value ~ group,
                                iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
 
-logrun_3groups(iter = 1, sample_size = 10, mod_iter = 1100, mod_warmup = 1000)
+glmrun_3groups(iter = 1, sample_size = 10, mod_iter = 1100, mod_warmup = 1000)

@@ -41,14 +41,17 @@ run_tighter2groups(iter = 1000, sample_size = 20,
             mod_iter = 11000, mod_warmup = 1000)
 run_tighter3groups(iter = 1000, sample_size = 20, 
             mod_iter = 11000, mod_warmup = 1000)
+
 run_tighter2groups(iter = 1000, sample_size = 30, 
             mod_iter = 11000, mod_warmup = 1000)
 run_tighter3groups(iter = 1000, sample_size = 30, 
             mod_iter = 11000, mod_warmup = 1000)
+
 run_tighter2groups(iter = 1000, sample_size = 50, 
             mod_iter = 11000, mod_warmup = 1000)
 run_tighter3groups(iter = 1000, sample_size = 50, 
             mod_iter = 11000, mod_warmup = 1000)
+
 run_tighter2groups(iter = 1000, sample_size = 100, 
                    mod_iter = 11000, mod_warmup = 1000)
 run_tighter3groups(iter = 1000, sample_size = 100, 
