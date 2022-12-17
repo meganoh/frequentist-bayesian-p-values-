@@ -12,6 +12,7 @@ library(extraDistr)
 options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
 options(brms.backend = "rstan")
 library("extraDistr")
+library(lme4)
 
 source("glmer_2groups.R")
 source("glmer_3groups.R")
@@ -40,14 +41,14 @@ bayes_intercept_prefit = brm(formula = y|trials(n) ~ 1+  (1|id),
                              save_pars = save_pars(all = TRUE), 
                              iter = mod_iter, warmup = mod_warmup,
                              chains = 4, cores = 1)
-?brm()
+
 bayes_flatprior_prefit = brm(formula = y|trials(n) ~ group + (1|id), 
                              data = data, 
                              family = "binomial", 
                              save_pars = save_pars(all = TRUE), 
                              iter = mod_iter, warmup = mod_warmup,
                              chains = 4, cores = 1)
-summary(bayes_flatprior_prefit)
+summary(bayes_intercept_prefit)
 bayes_flatprior_prefit$model
 
 tighter_prior <- c(set_prior("student_t(3, 0, 0.2)", class = "b")) 
@@ -62,7 +63,7 @@ bayes_tighterprior_prefit <- brm(formula = y|trials(n) ~ group + (1|id),
 wider_prior <- c(set_prior("student_t(3, 0, 0.5)", class = "b")) 
 bayes_widerprior_prefit <- brm(formula = y|trials(n) ~ group + (1|id), 
                                data = data, 
-                               family = bernoulli(),
+                               family = "binomial",
                                prior = wider_prior,
                                save_pars = save_pars(all = TRUE), 
                                iter = mod_iter, warmup = mod_warmup,

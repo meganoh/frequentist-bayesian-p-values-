@@ -15,7 +15,8 @@ glmer_3groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
   
   #freq model
   freq <- glmer(cbind(y, n-y) ~ group + (1|id), data, family=binomial())
-  freq_pval <- summary(freq)$coef[2, 4]
+  freq_test <- joint_tests(freq)
+  freq_pval <- freq_test$p.value
   
   #null model 
   bayes_intercept <- update(bayes_intercept_prefit, 

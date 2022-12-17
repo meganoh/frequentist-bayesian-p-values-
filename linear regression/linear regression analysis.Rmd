@@ -262,30 +262,13 @@ ci2 <- bind_rows(wald2_ci, bf2_ci,loo2_ci,waic2_ci)
 ci3 <- bind_rows(wald3_ci, bf3_ci,loo3_ci,waic3_ci)
 
 ggplot(ci2, aes(x = samplesize, y = mean)) + 
-  geom_line() + geom_point(size = 0.5) + geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5) + facet_grid(test ~ type)
+  geom_line() + geom_point(size = 0.2) + geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5) + facet_grid(test ~ type) + 
+  geom_hline(yintercept = .05, colour = "grey")
 
 ggplot(ci3, aes(x = samplesize, y = mean)) + 
-  geom_line() + geom_pointrange(aes(ymin = lower, ymax = upper)) + facet_grid(test ~ type)
+  geom_line() + geom_pointrange(aes(ymin = lower, ymax = upper), size = 0.2) + facet_grid(test ~ type)
 ```
 
-##bf 
-```{r}
-#bf indicates preference for null over specified model
-#bf - x1/x2 so higher --> preference for int, lower - x2
-ggplot(twogroups, aes(x = bf)) + 
-  geom_histogram(aes(y = after_stat(density)), binwidth = .05) + 
-  facet_grid(test ~ n)  + 
-  geom_vline(xintercept = .05)
-```
-
-
-##conf int 
-```{r}
-wald_2group <- wald_2group 
-binom.bayes(typeIerr_2group$sig, 1000, conf.level = 0.95)
-
-binom.confint(twogroups$pval, 1000, conf.level = 0.95, methods = "all")
-```
 
 
 
