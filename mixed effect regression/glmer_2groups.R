@@ -90,8 +90,7 @@ glmer_2groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
                               loo_se = loo_sd_diff_flat,
                               waic_diff = waic_elpd_diff_flat,
                               waic_se = waic_se_diff_flat,
-                              bf = bf_flat,
-                              lp_diff = diff_flat)
+                              bf = bf_flat)
   out_tighterbayes <- data.frame(n = sample_size, 
                                  test = "bayes_tighterprior", pval = bayes_tighter_pval, 
                                  loo_diff = loo_elpd_diff_tighter, 
@@ -114,8 +113,8 @@ glmer_2groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
 }
 
 glmerrun_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
-  results_2groups <- mclapply(X = 1:iter, 
+  glmerresults_2groups <- mclapply(X = 1:iter, 
                               FUN = glmer_2groups, sample_size, mod_iter, mod_warmup, 
                               mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
-  save(results_2groups, file = paste0("glmer_2groups", "_n", sample_size, "_iter", iter, ".rda"))
+  save(results_2groups, file = paste0("glmerresults_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 }

@@ -1,3 +1,5 @@
+
+setwd("/home/megan/frequentist-bayesian-p-values-/mixed effect regression")
 #set up 
 library(brms)
 library(rstanarm)
@@ -68,3 +70,23 @@ bayes_widerprior_prefit <- brm(formula = y|trials(n) ~ group + (1|id),
                                save_pars = save_pars(all = TRUE), 
                                iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
+
+glmerrun_2groups(iter = 1000, sample_size = 20, 
+                 mod_iter = 1100, mod_warmup = 1000)
+glmerrun_3groups(iter = 1000, sample_size = 20, 
+                 mod_iter = 1100, mod_warmup = 1000)
+
+glmerrun_2groups(iter = 1000, sample_size = 30, 
+                 mod_iter = 1100, mod_warmup = 1000)
+glmerrun_3groups(iter = 1000, sample_size = 30, 
+                 mod_iter = 1100, mod_warmup = 1000)
+
+glmerrun_2groups(iter = 1000, sample_size = 50, 
+                 mod_iter = 1100, mod_warmup = 1000)
+glmerrun_3groups(iter = 1000, sample_size = 50, 
+                 mod_iter = 1100, mod_warmup = 1000)
+
+glmerrun_2groups(iter = 1000, sample_size = 100, 
+                 mod_iter = 1100, mod_warmup = 1000)
+glmerrun_3groups(iter = 1000, sample_size = 100, 
+                 mod_iter = 1100, mod_warmup = 1000)

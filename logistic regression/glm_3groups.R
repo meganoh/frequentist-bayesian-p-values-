@@ -85,11 +85,10 @@ glm_3groups <- function(i, sample_size, mod_iter, mod_warmup){
   out_flatbayes <- data.frame(n = sample_size, 
                               test = "bayes_flatprior", pval = bayes_flat_pval, 
                               loo_diff = loo_elpd_diff_flat, 
-                              loo_se = loo_sd_diff_flat,
+                              loo_se = loo_se_diff_flat,
                               waic_diff = waic_elpd_diff_flat,
                               waic_se = waic_se_diff_flat,
-                              bf = bf_flat,
-                              lp_diff = diff_flat)
+                              bf = bf_flat)
   out_tighterbayes <- data.frame(n = sample_size, 
                                  test = "bayes_tighterprior", pval = bayes_tighter_pval, 
                                  loo_diff = loo_elpd_diff_tighter, 

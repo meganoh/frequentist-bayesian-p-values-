@@ -1,0 +1,8 @@
+---
+title: "glm_results"
+output: html_document
+---
+```{r}
+tighter3_n10 <- bind_rows(glmresults_3groups, .id = "id")
+```
+
