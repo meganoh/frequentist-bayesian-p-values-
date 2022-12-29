@@ -1,4 +1,4 @@
-log_2groups <- function(i, sample_size, mod_iter, mod_warmup){
+glm_2groups <- function(i, sample_size, mod_iter, mod_warmup){
   prob <- rbeta(1, 2, 2)
   
   data <- data.frame(group = rep(c("control", "treatmentA"), each = sample_size), 
@@ -61,7 +61,6 @@ log_2groups <- function(i, sample_size, mod_iter, mod_warmup){
   waic_elpd_diff_wider <- waic_wider$diffs[2]
   waic_se_diff_wider <- waic_wider$diffs[4]
   
-  
   #bayes factors 
   #flat 
   bf_flat_test <- bridgesampling::bayes_factor(bayes_intercept, 
@@ -83,11 +82,10 @@ log_2groups <- function(i, sample_size, mod_iter, mod_warmup){
   out_flatbayes <- data.frame(n = sample_size, 
                               test = "bayes_flatprior", pval = bayes_flat_pval, 
                               loo_diff = loo_elpd_diff_flat, 
-                              loo_se = loo_sd_diff_flat,
+                              loo_se = loo_se_diff_flat,
                               waic_diff = waic_elpd_diff_flat,
                               waic_se = waic_se_diff_flat,
-                              bf = bf_flat,
-                              lp_diff = diff_flat)
+                              bf = bf_flat)
   out_tighterbayes <- data.frame(n = sample_size, 
                                  test = "bayes_tighterprior", pval = bayes_tighter_pval, 
                                  loo_diff = loo_elpd_diff_tighter, 
@@ -107,11 +105,12 @@ log_2groups <- function(i, sample_size, mod_iter, mod_warmup){
                    out_tighterbayes, 
                    out_widerbayes)
   return(out)
+  Sys.sleep(2)
 }
 
-logrun_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
+glmrun_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
   glmresults_2groups <- mclapply(X = 1:iter, 
-                              FUN = log_2groups, sample_size, mod_iter, mod_warmup, 
+                              FUN = glm_2groups, sample_size, mod_iter, mod_warmup, 
                               mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
   save(glmresults_2groups, file = paste0("glm_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 }

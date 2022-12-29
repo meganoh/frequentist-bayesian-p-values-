@@ -142,7 +142,7 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   out_flatbayes <- data.frame(n = sample_size, diff, se, 
                               test = "bayes_flatprior", pval = bayes_flat_pval, 
                               loo_diff = loo_elpd_diff_flat, 
-                              loo_se = loo_sd_diff_flat,
+                              loo_se = loo_se_diff_flat,
                               waic_diff = waic_elpd_diff_flat,
                               waic_se = waic_se_diff_flat,
                               bf = bf_flat,

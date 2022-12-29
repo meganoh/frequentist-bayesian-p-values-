@@ -108,6 +108,7 @@ glm_3groups <- function(i, sample_size, mod_iter, mod_warmup){
                    out_tighterbayes, 
                    out_widerbayes)
   return(out)
+  Sys.sleep(2)
 }
 
 glmrun_3groups <-  function(iter, sample_size, mod_iter, mod_warmup) {

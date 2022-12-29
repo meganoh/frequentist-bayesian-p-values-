@@ -3,10 +3,10 @@ glmer_2groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
 
   data <- data.frame(group = rep(c("control", "treatmentA"), each = sample_size), 
                      prob = prob,
-                     re_ppt = rnorm(n = sample_size*2, 0, sigma), 
+                     re_ppt = rnorm(n = sample_size*2, 0, re_sd), 
                      n = 25)
   
-  data <- data %>% mutate(x = plogis(prob + re_ppt))
+  data <- data %>% mutate(x = plogis(prob + re_ppt)) #exp log the probability range from 0 to 1 
   data <- data %>% mutate(y = rbinom(n = nrow(data), size = n, prob = x))
   
   data <- data %>% mutate(id = row_number())
@@ -87,7 +87,7 @@ glmer_2groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
   out_flatbayes <- data.frame(n = sample_size, 
                               test = "bayes_flatprior", pval = bayes_flat_pval, 
                               loo_diff = loo_elpd_diff_flat, 
-                              loo_se = loo_sd_diff_flat,
+                              loo_se = loo_se_diff_flat,
                               waic_diff = waic_elpd_diff_flat,
                               waic_se = waic_se_diff_flat,
                               bf = bf_flat)
@@ -110,11 +110,12 @@ glmer_2groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
                    out_tighterbayes, 
                    out_widerbayes)
   return(out)
+  Sys.sleep(2)
 }
 
-glmerrun_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
+glmerrun_2groups <-  function(iter, sample_size, re_sd, mod_iter, mod_warmup) {
   glmerresults_2groups <- mclapply(X = 1:iter, 
-                              FUN = glmer_2groups, sample_size, mod_iter, mod_warmup, 
+                              FUN = glmer_2groups, sample_size,  re_sd, mod_iter, mod_warmup, 
                               mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
-  save(results_2groups, file = paste0("glmerresults_2groups", "_n", sample_size, "_iter", iter, ".rda"))
+  save(glmerresults_2groups, file = paste0("glmerresults_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 }

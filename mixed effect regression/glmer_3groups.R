@@ -3,8 +3,8 @@ glmer_3groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
   
   data <- data.frame(group = rep(c("control", "treatmentA", "treatmentB"), each = sample_size), 
                       prob = prob,
-                      re_ppt = rnorm(n = sample_size*3, 0, sigma), 
-                      n = 25)
+                      re_ppt = rnorm(n = sample_size*3, 0, re_sd), 
+                      n = 25) #number of trials 
   
   data <- data %>% mutate(x = plogis(prob + re_ppt))
   data <- data %>% mutate(y = rbinom(n = nrow(data), size = n, prob = x))
@@ -24,7 +24,7 @@ glmer_3groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
   
   #bayes model - flat prior 
   bayes_flatprior <- update(bayes_flatprior_prefit, 
-                            newdata = data,  recompile = FALSE)
+                            newdata = data, recompile = FALSE)
   bayes_flat_test <- joint_tests(bayes_flatprior)
   bayes_flat_pval <- bayes_flat_test$p.value
   
@@ -83,13 +83,13 @@ glmer_3groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
   bf_wider_test <- bridgesampling::bayes_factor(bayes_intercept, 
                                                 bayes_widerprior, log = TRUE)
   bf_wider <- bf_wider_test$bf
-  
+ 
   out_freq <- data.frame(n = sample_size,
                          test = "freq", pval = freq_pval)
   out_flatbayes <- data.frame(n = sample_size, 
                               test = "bayes_flatprior", pval = bayes_flat_pval, 
                               loo_diff = loo_elpd_diff_flat, 
-                              loo_se = loo_sd_diff_flat,
+                              loo_se = loo_se_diff_flat,
                               waic_diff = waic_elpd_diff_flat,
                               waic_se = waic_se_diff_flat,
                               bf = bf_flat)
@@ -112,11 +112,13 @@ glmer_3groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
                    out_tighterbayes, 
                    out_widerbayes)
   return(out)
+  Sys.sleep(2)
 }
 
-glmerrun_3groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
+glmerrun_3groups <-  function(iter, sample_size, re_sd, mod_iter, mod_warmup) {
   glmerresults_3groups <- mclapply(X = 1:iter, 
-                              FUN = glmer_3groups, sample_size, mod_iter, mod_warmup, 
+                              FUN = glmer_3groups, sample_size, re_sd, mod_iter, mod_warmup, 
                               mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
-  save(results_3groups, file = paste0("glmerresults_3groups", "_n", sample_size, "_iter", iter, ".rda"))
+  save(glmerresults_3groups, file = paste0("glmerresults_3groups", "_n", sample_size, "_iter", iter, ".rda"))
+  return(glmerresults_3groups)
 }

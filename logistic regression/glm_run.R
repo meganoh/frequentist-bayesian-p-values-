@@ -17,7 +17,7 @@ library("extraDistr")
 source("glm_2groups.R")
 source("glm_3groups.R")
 
-sample_size = 30 
+sample_size = 1000 
 mod_iter = 11000
 mod_warmup = 1000
 
@@ -86,3 +86,10 @@ glmrun_2groups(iter = 1000, sample_size = 1000,
                mod_iter = 1100, mod_warmup = 1000)
 glmrun_3groups(iter = 1000, sample_size = 1000, 
                mod_iter = 1100, mod_warmup = 1000)
+df <- bind_rows(glmresults_3groups, .id = "id")
+
+nsim = c(20, 30, 50, 100, 1000)
+for (i in nsim) {
+  glmerrun_2groups(iter = 1, sample_size = nsim, re_sd = 1, mod_iter = 1100, mod_warmup = 1000)
+  glmerrun_3groups(iter = 1, sample_size = nsim, re_sd = 1, mod_iter = 1100, mod_warmup = 1000)
+}

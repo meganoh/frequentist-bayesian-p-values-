@@ -19,8 +19,8 @@ library(binom)
 
 ```{r}
 #read in results 
-tighter3_n100 <- bind_rows(results_3groups, .id = "id")
-
+tighter3_n100 <- bind_rows(glmerresults_3groups, .id = "id")
+max(tighter3_n100$id)
 rm(tighter3_n20, tighter3_n50, tighter3_n30, tighter3_n100)
 save(final_twogroups, file = "simulation_2group.rda")
 save(final_threegroups, file = "simulation_3group.rda")
