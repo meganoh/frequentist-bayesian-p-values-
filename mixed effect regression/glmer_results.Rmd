@@ -1,0 +1,62 @@
+---
+title: "glmer_results"
+output: html_document
+---
+```{r}
+setwd("/home/megan/frequentist-bayesian-p-values-/mixed effect regression")
+#set up 
+library(brms)
+library(rstanarm)
+library(bayestestR)
+library(BayesFactor)
+library(cmdstanr)
+library(emmeans)
+library(parallel)
+library(bridgesampling)
+library(tidyverse)
+library(extraDistr)
+options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
+options(brms.backend = "rstan")
+library("extraDistr")
+library(lme4)
+```
+
+
+```{r}
+group3sd0.5
+```
+
+
+#tests 
+```{r}
+alpha <- 0.05 #set threshold for significance 
+#pvalues
+final_twogroups <- final_twogroups %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+
+final_threegroups <- final_threegroups %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+
+#bayes factors 
+final_twogroups <- final_twogroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+final_threegroups <- final_threegroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+exp(0.57763990)
+
+#loo & waic 
+final_twogroups <- final_twogroups %>% mutate(
+  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
+  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
+) %>% 
+  rename(samplesize = n)
+
+final_threegroups <- final_threegroups %>% mutate(
+  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
+  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
+) %>% 
+  rename(samplesize = n)
+save(final_threegroups, file = "simulation_3groupFINAL.rda")
+```

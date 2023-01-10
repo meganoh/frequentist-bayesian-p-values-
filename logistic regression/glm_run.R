@@ -82,6 +82,9 @@ glmrun_2groups(iter = 1000, sample_size = 100,
 glmrun_3groups(iter = 1000, sample_size = 100, 
                mod_iter = 1100, mod_warmup = 1000)
 
+
+glmrun_3groups(iter = 10, sample_size = 110, 
+               mod_iter = 1100, mod_warmup = 1000)
 glmrun_2groups(iter = 1000, sample_size = 1000, 
                mod_iter = 1100, mod_warmup = 1000)
 glmrun_3groups(iter = 1000, sample_size = 1000, 

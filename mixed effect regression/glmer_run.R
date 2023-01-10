@@ -14,7 +14,6 @@ options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
 options(brms.backend = "rstan")
 library("extraDistr")
 library(lme4)
-df <- bind_rows(glmerresults_3groups, .id = "id")
 
 source("glmer_2groups.R")
 source("glmer_3groups.R")
@@ -69,40 +68,26 @@ bayes_widerprior_prefit <- brm(formula = y|trials(n) ~ group + (1|id),
                                iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
 
-#null model 
-bayes_intercept <- update(bayes_intercept_prefit, 
-                          newdata = data, recompile = FALSE)
 
-#bayes model - flat prior 
-bayes_flatprior <- update(bayes_flatprior_prefit, 
-                          newdata = data, recompile = FALSE)
-
-#bayes model - tighter .2 prior 
-bayes_tighterprior <- update(bayes_tighterprior_prefit, 
-                             newdata = data, recompile = FALSE)
-#bayes model - wider .5 prior 
-bayes_widerprior <- update(bayes_widerprior_prefit, 
-                           newdata = data, recompile = FALSE)
-
-glmerrun_2groups(iter = 1000, sample_size = 20, re_sd = 1,
+glmerrun_2groups(iter = 1000, sample_size = 20, re_sd = 0.5,
                  mod_iter = 1100, mod_warmup = 1000)
-glmerrun_3groups(iter = 1000, sample_size = 20, re_sd = 1,
+glmerrun_3groups(iter = 1000, sample_size = 20, re_sd = 0.5,
                  mod_iter = 1100, mod_warmup = 1000)
 
-glmerrun_2groups(iter = 1000, sample_size = 30, re_sd = 1, 
+glmerrun_2groups(iter = 1000, sample_size = 30, re_sd = 0.5, 
                  mod_iter = 1100, mod_warmup = 1000)
-glmerrun_3groups(iter = 1000, sample_size = 30, re_sd = 1,
+glmerrun_3groups(iter = 1000, sample_size = 30, re_sd = 0.5,
                  mod_iter = 1100, mod_warmup = 1000)
 
-glmerrun_2groups(iter = 1000, sample_size = 50, re_sd = 1,
+glmerrun_2groups(iter = 1000, sample_size = 50, re_sd = 0.5,
                  mod_iter = 1100, mod_warmup = 1000)
-glmerrun_3groups(iter = 1000, sample_size = 50, re_sd = 1,
+glmerrun_3groups(iter = 1000, sample_size = 50, re_sd = 0.5,
                  mod_iter = 1100, mod_warmup = 1000)
 
 glmerrun_2groups(iter = 1000, sample_size = 100, re_sd = 1,
                  mod_iter = 1100, mod_warmup = 1000)
-glmerrun_3groups(iter = 20, sample_size = 100, re_sd = 1,
-                 mod_iter = 1100, mod_warmup = 1000)
+glmerrun_3groups(iter = 1, sample_size = 100, re_sd = 0.5,
+                 mod_iter = 1100, mod_warmup = 10000)
 
 
 

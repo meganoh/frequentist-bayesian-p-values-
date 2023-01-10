@@ -119,6 +119,6 @@ glmerrun_3groups <-  function(iter, sample_size, re_sd, mod_iter, mod_warmup) {
   glmerresults_3groups <- mclapply(X = 1:iter, 
                               FUN = glmer_3groups, sample_size, re_sd, mod_iter, mod_warmup, 
                               mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
-  save(glmerresults_3groups, file = paste0("glmerresults_3groups", "_n", sample_size, "_iter", iter, ".rda"))
+  save(glmerresults_3groups, file = paste0("glmerresults_3groups", "_n", sample_size, "_iter", iter, "sd", re_sd, ".rda"))
   return(glmerresults_3groups)
 }
