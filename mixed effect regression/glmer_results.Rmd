@@ -23,7 +23,13 @@ library(lme4)
 
 
 ```{r}
-group3sd0.5
+group2sd1n100 <- bind_rows(glmerresults_2groups, .id = "id")
+group2sd1 <- bind_rows(group2sd1n20, group2sd1n30, group2sd1n50, group2sd1n100)
+group2sd1$sd <- 1
+rm(group2sd1n20, group2sd1n30, group2sd1n50, group2sd1n100)
+group3sd0.5n20, group3sd0.5n30, group3sd0.5n50, group3sd0.5n100)
+group2 <- bind_rows(group2sd0.5, group2sd1)
+save(group3, file = "glmer_3groupresults.rda")
 ```
 
 
@@ -31,29 +37,24 @@ group3sd0.5
 ```{r}
 alpha <- 0.05 #set threshold for significance 
 #pvalues
-final_twogroups <- final_twogroups %>% 
-  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
-         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
-         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+group2 <- group2 %>% 
+  mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
 
-final_threegroups <- final_threegroups %>% 
-  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
-         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
-         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+group3 <- group3 %>% 
+  mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
 
 #bayes factors 
-final_twogroups <- final_twogroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
-final_threegroups <- final_threegroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
-exp(0.57763990)
+group2 <- group2 %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+group3 <- group3 %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
 
 #loo & waic 
-final_twogroups <- final_twogroups %>% mutate(
+group2 <- group2 %>% mutate(
   loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
   waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
 ) %>% 
   rename(samplesize = n)
 
-final_threegroups <- final_threegroups %>% mutate(
+group3 <- group3 %>% mutate(
   loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
   waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
 ) %>% 
