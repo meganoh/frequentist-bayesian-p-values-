@@ -2,7 +2,194 @@
 title: "glm_results"
 output: html_document
 ---
+
 ```{r}
-tighter3_n10 <- bind_rows(glmresults_3groups, .id = "id")
+setwd("/home/megan/frequentist-bayesian-p-values-/logistic regression")
+#set up 
+library(brms)
+library(rstanarm)
+library(bayestestR)
+library(BayesFactor)
+library(cmdstanr)
+library(emmeans)
+library(parallel)
+library(bridgesampling)
+library(tidyverse)
+library(extraDistr)
+options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
+options(brms.backend = "rstan")
+library("extraDistr")
+library(lme4)
+library(binom)
 ```
 
+```{r}
+group2n100 <- bind_rows(glmresults_2groups, .id = "id")
+group2GLM <- bind_rows(group2n20, group2n30, group2n50, group2n100)
+
+rm(group2n20, group2n30, group2n50, group2n100)
+
+save(group2GLM, file = "glm_2groupresults.rda")
+save(group3GLM, file = "glm_3groupresults.rda")
+```
+
+#tests 
+```{r}
+alpha <- 0.05 #set threshold for significance 
+#pvalues
+group2GLM <- group2GLM %>% 
+  mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+
+group3GLM <- group3GLM %>% 
+  mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+
+#bayes factors 
+group2GLM <- group2GLM %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+group3GLM <- group3GLM %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+
+#loo & waic 
+group2GLM <- group2GLM %>% mutate(
+  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
+  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")) 
+
+group3GLM <- group3GLM %>% mutate(
+  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
+  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
+)
+```
+
+
+#run from here for results 
+```{r}
+load("glm_2groupresults.rda")
+load("glm_3groupresults.rda")
+```
+#to calculate confidence intervals
+```{r}
+iter = 1000
+pval_2group <- group2GLM %>% 
+  group_by(samplesize, test) %>% 
+  count(psig) %>% 
+  pivot_wider(names_from = "psig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter) %>% 
+  rename(x = sig) 
+pval_2group$x[is.na(pval_2group$x)] <- 0
+pval_2group$rate_typeIerr[is.na(pval_2group$rate_typeIerr)] <- 0
+
+pval_3group <- group3GLM %>% 
+  group_by(samplesize, test) %>% 
+  count(psig) %>% 
+  pivot_wider(names_from = "psig", values_from = "n") %>% 
+  mutate(rate_typeIerr = sig/iter) %>% 
+  rename(x = sig) 
+pval_3group$x[is.na(pval_3group$x)] <- 0
+pval_3group$rate_typeIerr[is.na(pval_3group$rate_typeIerr)] <- 0
+
+bf_2group <- group2GLM %>% 
+  group_by(samplesize, test) %>% 
+  count(bf_prop) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "bf_prop", values_from = "n") %>% 
+  mutate(rate_null = null/iter) %>% rename(x = null)
+bf_2group$x[is.na(bf_2group$x)] <- 0
+bf_2group$rate_null[is.na(bf_2group$rate_null)] <- 0
+
+bf_3group <- group3GLM %>% 
+  group_by(samplesize, test) %>% 
+  count(bf_prop) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "bf_prop", values_from = "n")  %>% 
+  mutate(rate_null = null/iter) %>% rename(x = null)
+bf_3group$x[is.na(bf_3group$x)] <- 0
+bf_3group$rate_null[is.na(bf_3group$rate_null)] <- 0
+
+loo_2group <- group2GLM %>% 
+  group_by(samplesize, test) %>% 
+  count(loo_results) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "loo_results", values_from = "n") %>% 
+  mutate(rate_yes = yes/iter) %>% rename(x = yes)#yes - more than 2sd 
+
+loo_3group <- group3GLM %>% 
+  group_by(samplesize, test) %>% 
+  count(loo_results) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "loo_results", values_from = "n") %>% 
+  mutate(rate_yes = yes/iter) %>% rename(x = yes)
+
+waic_2group <- group2GLM %>% 
+  group_by(samplesize, test) %>% 
+  count(waic_results) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "waic_results", values_from = "n") %>% 
+  mutate(rate_yes = yes/iter) %>% rename(x = yes)
+waic_2group$x[is.na(waic_2group$x)] <- 0
+waic_2group$rate_yes[is.na(waic_2group$rate_yes)] <- 0
+
+waic_3group <- group3GLM %>% 
+  group_by(samplesize, test) %>% 
+  count(waic_results) %>% 
+  filter(test != "freq") %>% 
+  pivot_wider(names_from = "waic_results", values_from = "n") %>% 
+  mutate(rate_yes = yes/iter) %>% rename(x = yes)
+waic_3group$x[is.na(waic_3group$x)] <- 0
+waic_3group$rate_yes[is.na(waic_3group$rate_yes)] <- 0
+```
+
+#confidence intervals
+```{r}
+wald2_ci <- binom.bayes(pval_2group$x, 1000, conf.level = 0.95, tol = 1e-9)
+wald2_ci <- wald2_ci %>% select(-n) %>% 
+  inner_join(pval_2group, by = "x")
+
+wald3_ci <- binom.bayes(pval_3group$x, 1000, conf.level = 0.95, tol = 1e-9)
+wald3_ci <- wald3_ci %>% select(-n) %>% 
+  inner_join(pval_3group, by = "x")
+
+bf2_ci <- binom.bayes(bf_2group$x, 1000, conf.level = 0.95, tol = 1e-9)
+bf2_ci <- bf2_ci %>% select(-n) %>% 
+  inner_join(bf_2group, by = "x")
+
+bf3_ci <- binom.bayes(bf_3group$x, 1000, conf.level = 0.95, tol = 1e-9)
+bf3_ci <- bf3_ci %>% select(-n) %>% 
+  inner_join(bf_3group, by = "x")
+
+loo2_ci <- binom.bayes(loo_2group$x, 1000, conf.level = 0.95, tol = 1e-9)
+loo2_ci <- loo2_ci %>% select(-n) %>% 
+  inner_join(loo_2group, by = "x")
+
+loo3_ci <- binom.bayes(loo_3group$x, 1000, conf.level = 0.95, tol = 1e-9)
+loo3_ci <- loo3_ci %>% select(-n) %>% 
+  inner_join(loo_3group, by = "x")
+
+waic2_ci <- binom.bayes(waic_2group$x, 1000, conf.level = 0.95, tol = 1e-9)
+waic2_ci <- waic2_ci %>% select(-n) %>% 
+  inner_join(waic_2group, by = "x")
+
+waic3_ci <- binom.bayes(waic_3group$x, 1000, conf.level = 0.95, tol = 1e-9)
+waic3_ci <- waic3_ci %>% select(-n) %>% 
+  inner_join(waic_3group, by = "x")
+```
+#big ci plot 
+```{r}
+wald2_ci$type <- "wald" 
+wald3_ci$type <- "wald" 
+
+bf2_ci$type <- "bf" 
+bf3_ci$type <- "bf" 
+
+loo2_ci$type <- "loo" 
+loo3_ci$type <- "loo" 
+waic2_ci$type <- "waic" 
+waic3_ci$type <- "waic" 
+ci2 <- bind_rows(wald2_ci, bf2_ci,loo2_ci,waic2_ci)
+ci3 <- bind_rows(wald3_ci, bf3_ci,loo3_ci,waic3_ci)
+
+ggplot(ci2, aes(x = samplesize, y = mean)) + 
+  geom_line() + geom_point(size = 0.2) + geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5) + 
+  facet_grid(type ~ test) + 
+  geom_hline(yintercept = .05, colour = "grey")
+
+ggplot(ci3, aes(x = samplesize, y = mean)) + 
+  geom_line() + geom_pointrange(aes(ymin = lower, ymax = upper), size = 0.2) + facet_grid(test ~ type)
+```

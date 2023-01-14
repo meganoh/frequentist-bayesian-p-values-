@@ -60,6 +60,11 @@ bayes_widerprior_prefit <- brm(formula = value ~ group,
                                save_pars = save_pars(all = TRUE), 
                                iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
+glmrun_2groups(iter = 1000, sample_size = 1000, 
+               mod_iter = 1100, mod_warmup = 1000)
+glmrun_3groups(iter = 1000, sample_size = 1000, 
+               mod_iter = 1100, mod_warmup = 1000)
+
 
 glmrun_2groups(iter = 1000, sample_size = 20, 
                mod_iter = 1100, mod_warmup = 1000)
@@ -91,8 +96,4 @@ glmrun_3groups(iter = 1000, sample_size = 1000,
                mod_iter = 1100, mod_warmup = 1000)
 df <- bind_rows(glmresults_3groups, .id = "id")
 
-nsim = c(20, 30, 50, 100, 1000)
-for (i in nsim) {
-  glmerrun_2groups(iter = 1, sample_size = nsim, re_sd = 1, mod_iter = 1100, mod_warmup = 1000)
-  glmerrun_3groups(iter = 1, sample_size = nsim, re_sd = 1, mod_iter = 1100, mod_warmup = 1000)
-}
+
