@@ -96,4 +96,3 @@ glmrun_3groups(iter = 1000, sample_size = 1000,
                mod_iter = 1100, mod_warmup = 1000)
 df <- bind_rows(glmresults_3groups, .id = "id")
 
-

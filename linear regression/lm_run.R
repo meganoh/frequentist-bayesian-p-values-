@@ -1,4 +1,4 @@
-setwd("~/dissertation")
+setwd("/home/megan/frequentist-bayesian-p-values-/linear regression")
 #set up 
 library(brms)
 library(rstanarm)
@@ -64,8 +64,8 @@ bayes_oosterwijkprior_prefit <- brm(formula = value ~ group,
                                     chains = 4, cores = 1)
 
 #run simulation 
-source("simulation_source_2groups.R")
-source("simulation_source_3groups.R")
+source("lm_2groups.R")
+source("lm_3groups.R")
 
 run_2groups(iter = 1000, sample_size = 100, 
             mod_iter = 11000, mod_warmup = 1000)

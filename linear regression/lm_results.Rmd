@@ -1,0 +1,302 @@
+---
+title: "simple linear regression analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+setwd("/home/megan/frequentist-bayesian-p-values-/linear regression")
+library(brms)
+library(rstanarm)
+library(bayestestR)
+library(BayesFactor)
+library(cmdstanr)
+library(emmeans)
+library(parallel)
+library(bridgesampling)
+library(tidyverse)
+library(extraDistr)
+library(binom)
+library(ggplot2)
+```
+
+```{r}
+#read in results 
+tighter3_n100 <- bind_rows(glmerresults_3groups, .id = "id")
+max(tighter3_n100$id)
+rm(tighter3_n20, tighter3_n50, tighter3_n30, tighter3_n100)
+save(final_twogroups, file = "simulation_2group.rda")
+save(final_threegroups, file = "simulation_3group.rda")
+```
+
+```{r}
+tighttwogroups <- bind_rows(tighter2_n20, tighter2_n30, tighter2_n50, tighter2_n100)
+tightthreegroups <- bind_rows(tighter3_n20, tighter3_n50, tighter3_n30, tighter3_n100)
+
+final_twogroups <- bind_rows(twogroups, tighttwogroups)
+final_threegroups <- bind_rows(threegroups, tightthreegroups)
+```
+#tests 
+```{r}
+alpha <- 0.05 #set threshold for significance 
+#pvalues
+final_twogroups <- final_twogroups %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+
+final_threegroups <- final_threegroups %>% 
+  mutate(wald_significance = if_else(pval < alpha, "sig", "nonsig"), 
+         likelihood_sig = if_else(p_likelihood < alpha, "sig", "nonsig"), 
+         likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+
+#bayes factors 
+final_twogroups <- final_twogroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+final_threegroups <- final_threegroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+exp(0.57763990)
+
+#loo & waic 
+final_twogroups <- final_twogroups %>% mutate(
+  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
+  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
+) %>% 
+  rename(samplesize = n)
+
+final_threegroups <- final_threegroups %>% mutate(
+  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
+  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
+) %>% 
+  rename(samplesize = n)
+save(final_threegroups, file = "simulation_3groupFINAL.rda")
+```
+
+#run from here for results 
+```{r}
+load("simulation_2groupFINAL.rda")
+load("simulation_3groupFINAL.rda")
+```
+
+#plot by type of test
+```{r}
+#wald p value 
+final_twogroups$type_f = factor(final_twogroups$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_studentprior',"bayes_oosterwijkprior"))
+plot_pval2 <- final_twogroups %>% mutate(samplesize = paste0("n = ", samplesize), 
+                                        type_f = recode(type_f, "freq" = "Frequentist", 
+                                                      "bayes_flatprior" = "Flat Prior",
+                                                      "bayes_studentprior" = "Student Wider Prior", 
+                                                      "bayes_tighterprior" = "Student Tighter Prior", 
+                                                      "bayes_oosterwijkprior" = "Oosterwijk Prior")) 
+plot_pval2$samplesize = factor(plot_pval2$samplesize, levels=c('n = 20','n = 30','n = 50','n = 100'))
+final_threegroups$type_f = factor(final_threegroups$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_oosterwijkprior"))
+plot_pval3 <- final_threegroups %>% mutate(samplesize = paste0("n = ", samplesize), 
+                                        type_f = recode(type_f, "freq" = "Frequentist", 
+                                                      "bayes_flatprior" = "Flat Prior",
+                                                      "bayes_studentprior" = "Student Wider Prior", 
+                                                      "bayes_tighterprior" = "Student Tighter Prior", 
+                                                      "bayes_oosterwijkprior" = "Oosterwijk Prior")) 
+plot_pval3$samplesize = factor(plot_pval3$samplesize, levels=c('n = 20','n = 30','n = 50','n = 100'))
+
+```
+
+##P VALUES 
+```{r}
+ggplot(plot_pval2, aes(x = pval)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
+  geom_vline(xintercept = .05, colour = "blue", linetype = 2) + 
+  ylab("Density") +
+  xlab("p-values") + 
+  labs(title = "lm 2 group p val")
+ggsave("lm_2group_pvalRAW.png", width = 30, height = 20, units = "cm")
+
+
+ggplot(plot_pval3, aes(x = pval)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize,labeller = labeller(type_f = label_wrap_gen(10)))  +
+  geom_vline(xintercept = .05, colour = "blue", linetype = 2) + 
+  ylab("Density") +
+  xlab("p-values")+ 
+  labs(title = "lm 3 group p val")
+ggsave("lm_3group_pvalRAW.png", width = 30, height = 20, units = "cm")
+```
+
+## BFS
+```{r}
+plot_bf2 <- plot_pval2 %>% filter(type != "freq")
+
+ggplot(plot_bf2, aes(x = bf)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
+  geom_vline(xintercept = 0, colour = "blue", linetype = 2)  + 
+  ylab("Density") +
+  xlab("Bayes Factors (Exponential)")  + 
+  labs(title = "lm 2 group bf")
+ggsave("lm_2group_bfRAW.png", width = 30, height = 20, units = "cm")
+
+
+plot_bf3 <- plot_pval3 %>% filter(type != "freq")
+
+ggplot(plot_bf3, aes(x = bf))  + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
+  geom_vline(xintercept = 0, colour = "blue", linetype = 2)  + 
+  ylab("Density") +
+  xlab("Bayes Factors (Exponential)") + 
+  labs(title = "lm 3 group bf")
+ggsave("lm_3group_bfRAW.png", width = 30, height = 20, units = "cm")
+```
+
+
+#plot confidence intervals 
+```{r}
+iter = 1000
+wald_2group <- final_twogroups %>% 
+  group_by(samplesize, type) %>% 
+  count(wald_significance) %>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  rename(x = sig, 
+         non = nonsig) 
+
+wald_3group <- final_threegroups %>% 
+  group_by(samplesize, type) %>% 
+  count(wald_significance)%>% 
+  pivot_wider(names_from = "wald_significance", values_from = "n") %>% 
+  rename(x = sig, 
+         non = nonsig)
+
+bf_2group <- final_twogroups %>% 
+  group_by(samplesize, type) %>% 
+  count(bf_prop) %>% 
+  filter(type != "freq") %>% 
+  pivot_wider(names_from = "bf_prop", values_from = "n") %>% 
+  rename(x = null, 
+         non = no)
+bf_2group$x[is.na(bf_2group$x)] <- 0
+
+bf_3group <- final_threegroups %>% 
+  group_by(samplesize, type) %>% 
+  count(bf_prop) %>% 
+  filter(type != "freq") %>% 
+  pivot_wider(names_from = "bf_prop", values_from = "n")  %>% 
+  rename(x = null, 
+         non = no)
+bf_3group$x[is.na(bf_3group$x)] <- 0
+```
+#LOO & WAIC 
+```{r}
+loo_2group <- final_twogroups %>% 
+  group_by(samplesize, type) %>% 
+  count(loo_results) %>% 
+  filter(type != "freq") %>% 
+  pivot_wider(names_from = "loo_results", values_from = "n") %>% 
+  mutate(rate_yes = yes/iter) %>% rename(x = yes)#yes - more than 2sd 
+
+loo_3group <- final_threegroups %>% 
+  group_by(samplesize, type) %>% 
+  count(loo_results) %>% 
+  filter(type != "freq") %>% 
+  pivot_wider(names_from = "loo_results", values_from = "n") %>% 
+  mutate(rate_yes = yes/iter) %>% rename(x = yes)
+
+waic_2group <- final_twogroups %>% 
+  group_by(samplesize, type) %>% 
+  count(waic_results) %>% 
+  filter(type != "freq") %>% 
+  pivot_wider(names_from = "waic_results", values_from = "n") %>% 
+  mutate(rate_yes = yes/iter) %>% rename(x = yes)
+waic_2group$x[is.na(waic_2group$x)] <- 0
+waic_2group$rate_yes[is.na(waic_2group$rate_yes)] <- 0
+
+waic_3group <- final_threegroups %>% 
+  group_by(samplesize, type) %>% 
+  count(waic_results) %>% 
+  filter(type != "freq") %>% 
+  pivot_wider(names_from = "waic_results", values_from = "n") %>% 
+  mutate(rate_yes = yes/iter) %>% rename(x = yes)
+waic_3group$x[is.na(waic_3group$x)] <- 0
+waic_3group$rate_yes[is.na(waic_3group$rate_yes)] <- 0
+```
+
+#confidence intervals
+```{r}
+wald_2group$ci <- binom.bayes(wald_2group$x, 1000, conf.level = 0.95)
+wald_2group$test <- "pval"
+
+wald_3group$ci  <- binom.bayes(wald_3group$x, 1000, conf.level = 0.95)
+wald_3group$test <- "pval"
+
+bf_2group$ci <- binom.bayes(bf_2group$x, 1000, conf.level = 0.95)
+bf_2group$test <- "bf"
+
+bf_3group$ci <- binom.bayes(bf_3group$x, 1000, conf.level = 0.95)
+bf_3group$test <- "bf"
+```
+
+```{r}
+loo_2group$ci <- binom.bayes(loo_2group$x, 1000, conf.level = 0.95)
+loo_3group$ci <- binom.bayes(loo_3group$x, 1000, conf.level = 0.95)
+
+waic_2group$ci <- binom.bayes(waic_2group$x, 1000, conf.level = 0.95)
+waic_3group$ci <- binom.bayes(waic_3group$x, 1000, conf.level = 0.95)
+```
+
+#make one big plot of cis 
+##2group 
+```{r}
+ci2 <- bind_rows(wald_2group, bf_2group)
+ci3 <- bind_rows(wald_3group, bf_3group)
+
+
+label_wrap <- function(variable, value) {
+  lapply(strwrap(as.character(value), width=25, simplify=FALSE), 
+         paste, collapse="\n")
+}
+
+#wald p value 
+ci2 <- ci2 %>% filter(type != "bayes_flatprior"|test != "bf")
+ci3 <- ci3 %>% filter(type != "bayes_flatprior"|test != "bf")
+
+ci2$type_f = factor(ci2$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_oosterwijkprior"))
+ci2 <- ci2 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
+                                                      "bayes_flatprior" = "Flat Prior",
+                                                      "bayes_studentprior" = "Student Wider Prior", 
+                                                      "bayes_tighterprior" = "Student Tighter Prior", 
+                                                      "bayes_oosterwijkprior" = "Oosterwijk Prior"), 
+                      test = recode(test, "pval" = "p-values", "bf" = "Bayes Factors")) 
+
+ci3$type_f = factor(ci3$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_oosterwijkprior"))
+ci3 <- ci3 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
+                                                      "bayes_flatprior" = "Flat Prior",
+                                                      "bayes_studentprior" = "Student Wider Prior", 
+                                                      "bayes_tighterprior" = "Student Tighter Prior", 
+                                                      "bayes_oosterwijkprior" = "Oosterwijk Prior"), 
+                      test = recode(test, "pval" = "p-values", "bf" = "Bayes Factors")) 
+```
+```{r}
+ggplot(ci2, aes(x = samplesize, y = ci$mean)) + 
+  geom_line() + 
+  geom_point(size = .2) + 
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 1, colour = "blue") + 
+  facet_grid(test ~ type_f, labeller = labeller(type_f = label_wrap_gen(10))) + 
+  geom_hline(data = filter(ci2, test == "p-values"), aes(yintercept = .05), colour = "blue", linetype = 2) + 
+  ylab("Rate of Significance/BF>3") +
+  xlab("Sample Size") + 
+  labs(title = "lm 2 group CI ")
+
+ggsave("lm_2group_CI.png", width = 30, height = 20, units = "cm")
+
+ggplot(ci3, aes(x = samplesize, y = ci$mean)) + 
+  geom_line() + 
+  geom_point(size = .2) + 
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 1, colour = "blue") + 
+  facet_grid(test ~ type_f, labeller = labeller(type_f = label_wrap_gen(10))) + 
+  geom_hline(data = filter(ci2, test == "p-values"), aes(yintercept = .05), colour = "blue", linetype = 2) + 
+  ylab("Rate of Significance/BF>3") +
+  xlab("Sample Size")+ 
+  labs(title = "lm 3 group CI ")
+
+ggsave("lm_3group_CI.png", width = 30, height = 20, units = "cm")
+```
+
+
+
+
