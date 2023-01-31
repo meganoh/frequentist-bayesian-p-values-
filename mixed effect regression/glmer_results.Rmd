@@ -25,16 +25,26 @@ library(binom)
 
 ```{r}
 group2sd1n100 <- bind_rows(glmerresults_2groups, .id = "id")
-group2sd1 <- bind_rows(group2sd1n20, group2sd1n30, group2sd1n50, group2sd1n100)
-group2sd1$sd <- 1
-rm(group2sd1n20, group2sd1n30, group2sd1n50, group2sd1n100)
-group3sd0.5n20, group3sd0.5n30, group3sd0.5n50, group3sd0.5n100)
-group2 <- bind_rows(group2sd0.5, group2sd1)
+group3sd1n100 <- bind_rows(glmerresults_3groups, .id = "id")
 
-group2GLMER <- group2 %>% rename(type = test)
-group3GLMER <- group3 %>% rename(type = test)
-save(group2GLMER, file = "glmer_2groupresults.rda")
-save(group3GLMER, file = "glmer_3groupresults.rda")
+group2sd1 <- bind_rows(group2sd1n20, group2sd1n30, group2sd1n50, group2sd1n100)
+group3sd1 <- bind_rows(group3sd1n20, group3sd1n30, group3sd1n50, group3sd1n100)
+
+rm(group3sd1n20, group3sd1n30, group3sd1n50, group3sd1n100)
+
+group3sd1$group <- 3
+group3sd1$sd <- 1
+
+group2 <- bind_rows(group2sd0.5, group2sd1)
+group2$group <- 2
+
+group3 <- bind_rows(group3sd0.5, group3sd1)
+group3$group <- 3
+
+combined <- bind_rows(group2sd0.5, group2sd1, group3sd0.5,group3sd1)
+
+combined <- combined %>% rename(type = test)
+save(combined, file = "glmerresults.rda")
 ```
 
 
@@ -42,28 +52,21 @@ save(group3GLMER, file = "glmer_3groupresults.rda")
 ```{r}
 alpha <- 0.05 #set threshold for significance 
 #pvalues
-group2 <- group2 %>% 
-  mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
-
-group3 <- group3 %>% 
+combined <- combined %>% 
   mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
 
 #bayes factors 
-group2 <- group2 %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
-group3 <- group3 %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+combined <- combined %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
 
 #loo & waic 
-group2 <- group2 %>% mutate(
+combined <- combined %>% mutate(
   loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
   waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
 ) %>% 
   rename(samplesize = n)
 
-group3 <- group3 %>% mutate(
-  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
-  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
-) %>% 
-  rename(samplesize = n)
+rm(glmerresults_2groups, glmerresults_3groups, group2sd0.5, group2sd1, group3sd0.5, group3sd1)
+save(combined, file = "glmerresults.rda")
 ```
 
 #run from here for results 
@@ -75,146 +78,153 @@ load("glmer_3groupresults.rda")
 #plot of raw results 
 ```{r}
 #wald p value 
-group2GLMER$type_f = factor(group2GLMER$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_widerprior'))
-plot_pval2 <- group2GLMER %>% mutate(samplesize = paste0("n = ", samplesize), 
+combined$type_f = factor(combined$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_widerprior'))
+combined <- combined %>% mutate(samplesize = paste0("n = ", samplesize), 
                                    type_f = recode(type_f, "freq" = "Frequentist", 
                                                    "bayes_flatprior" = "Flat Prior",
                                                    "bayes_widerprior" = "Student Wider Prior", 
                                                    "bayes_tighterprior" = "Student Tighter Prior") )
-plot_pval2$samplesize = factor(plot_pval2$samplesize, levels=c('n = 20','n = 30','n = 50','n = 100'))
-
-group3GLMER$type_f = factor(group3GLMER$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_widerprior'))
-plot_pval3 <- group3GLMER %>% mutate(samplesize = paste0("n = ", samplesize), 
-                                   type_f = recode(type_f, "freq" = "Frequentist", 
-                                                   "bayes_flatprior" = "Flat Prior",
-                                                   "bayes_widerprior" = "Student Wider Prior", 
-                                                   "bayes_tighterprior" = "Student Tighter Prior") )
-plot_pval3$samplesize = factor(plot_pval3$samplesize, levels=c('n = 20','n = 30','n = 50','n = 100'))
+combined$samplesize = factor(combined$samplesize, levels=c('n = 20','n = 30','n = 50','n = 100'))
 ```
 
 #PVALUES 
 ```{r}
 #p value 
-ggplot(plot_pval2, aes(x = pval)) + 
-  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
-  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
-  geom_vline(xintercept = .05, colour = "blue", linetype = 2) + 
-  ylab("Density") +
-  xlab("p-values") + 
-  labs(title = "glmer 2 group p val")
-ggsave("glmer_2group_pvalRAW.png", width = 30, height = 20, units = "cm")
+plot_pval2_sd0.5 <- plot_pval2 %>% filter(sd == 0.5)
+plot_pval2_sd1 <- plot_pval2 %>% filter(sd == 1)
 
-#p value 
-ggplot(plot_pval3, aes(x = pval)) + 
+ggplot(plot_pval2_sd0.5, aes(x = pval)) + 
   geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
   facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
   geom_vline(xintercept = .05, colour = "blue", linetype = 2) + 
   ylab("Density") +
   xlab("p-values") + 
-  labs(title = "glmer 3 group p val")
-ggsave("glmer_3group_pvalRAW.png", width = 30, height = 20, units = "cm")
+  labs(title = "glmer 2 group p val sd 0.5")
+ggsave("glmer_2group0.5SD_pvalRAW.png", width = 30, height = 20, units = "cm")
+
+ggplot(plot_pval2_sd1, aes(x = pval)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
+  geom_vline(xintercept = .05, colour = "blue", linetype = 2) + 
+  ylab("Density") +
+  xlab("p-values") + 
+  labs(title = "glmer 2 group p val sd 1")
+ggsave("glmer_2group1SD_pvalRAW.png", width = 30, height = 20, units = "cm")
+
+plot_pval3_sd0.5 <- plot_pval3 %>% filter(sd == 0.5)
+plot_pval3_sd1 <- plot_pval3 %>% filter(sd == 1)
+
+ggplot(plot_pval3_sd0.5, aes(x = pval)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
+  geom_vline(xintercept = .05, colour = "blue", linetype = 2) + 
+  ylab("Density") +
+  xlab("p-values") + 
+  labs(title = "glmer 3 group p val sd 0.5")
+ggsave("glmer_3group0.5SD_pvalRAW.png", width = 30, height = 20, units = "cm")
+
+ggplot(plot_pval3_sd1, aes(x = pval)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
+  geom_vline(xintercept = .05, colour = "blue", linetype = 2) + 
+  ylab("Density") +
+  xlab("p-values") + 
+  labs(title = "glmer 3 group p val sd 1")
+ggsave("glmer_3group1SD_pvalRAW.png", width = 30, height = 20, units = "cm")
 ```
 
 
 ## BFS
 ```{r}
-plot_bf2 <- plot_pval2 %>% filter(type != "freq")
+plot_bf2_sd0.5 <- plot_pval2_sd0.5 %>% filter(type != "freq")
+plot_bf2_sd1 <- plot_pval2_sd1 %>% filter(type != "freq")
 
-ggplot(plot_bf2, aes(x = bf)) + 
+ggplot(plot_bf2_sd0.5, aes(x = bf)) + 
   geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
   facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(15)))  + 
   geom_vline(xintercept = 0, colour = "blue", linetype = 2)  + 
   ylab("Density") +
   xlab("Bayes Factors (Exponential)")  + 
-  labs(title = "glmer 2 group bf")
-ggsave("glmer_2group_bfRAW.png", width = 30, height = 20, units = "cm")
+  labs(title = "glmer 2 group bf sd 0.5")
+ggsave("glmer_2group0.5SD_bfRAW.png", width = 30, height = 20, units = "cm")
 
+ggplot(plot_bf2_sd1, aes(x = bf)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(15)))  + 
+  geom_vline(xintercept = 0, colour = "blue", linetype = 2)  + 
+  ylab("Density") +
+  xlab("Bayes Factors (Exponential)")  + 
+  labs(title = "glmer 2 group bf sd 1")
+ggsave("glmer_2group1SD_bfRAW.png", width = 30, height = 20, units = "cm")
 
-plot_bf3 <- plot_pval3 %>% filter(type != "freq")
+plot_bf3_sd0.5 <- plot_pval3_sd0.5 %>% filter(type != "freq")
+plot_bf3_sd1 <- plot_pval3_sd1 %>% filter(type != "freq")
 
-ggplot(plot_bf3, aes(x = bf))  + 
+ggplot(plot_bf3_sd0.5, aes(x = bf))  + 
   geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
   facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
   geom_vline(xintercept = 0, colour = "blue", linetype = 2)  + 
   ylab("Density") +
   xlab("Bayes Factors (Exponential)") + 
-  labs(title = "glmer 3 group bf")
-ggsave("glmer_3group_bfRAW.png", width = 30, height = 20, units = "cm")
+  labs(title = "glmer 3 group bf sd 0.5")
+ggsave("glmer_3group0.5SD_bfRAW.png", width = 30, height = 20, units = "cm")
+
+ggplot(plot_bf3_sd1, aes(x = bf))  + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
+  facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
+  geom_vline(xintercept = 0, colour = "blue", linetype = 2)  + 
+  ylab("Density") +
+  xlab("Bayes Factors (Exponential)") + 
+  labs(title = "glmer 3 group bf sd 1")
+ggsave("glmer_3group1SD_bfRAW.png", width = 30, height = 20, units = "cm")
 ```
 
 #CIS
 ```{r}
 iter = 1000
-wald_2group <- group2GLMER %>% 
-  group_by(samplesize, type) %>% 
+wald <- combined %>%
+  group_by(group, samplesize, type, sd) %>% 
   count(psig) %>% 
   pivot_wider(names_from = "psig", values_from = "n") %>% 
   rename(x = sig, 
          non = nonsig) 
-wald_2group$x[is.na(wald_2group$x)] <- 0
+wald$x[is.na(wald$x)] <- 0
 
-wald_3group <- group3GLMER %>% 
-  group_by(samplesize, type) %>% 
-  count(psig)%>% 
-  pivot_wider(names_from = "psig", values_from = "n") %>% 
-  rename(x = sig, 
-         non = nonsig)
-wald_3group$x[is.na(wald_3group$x)] <- 0
-
-bf_2group <- group2GLMER %>% 
-  group_by(samplesize, type) %>% 
+bf<- combined %>% 
+  group_by(group, samplesize, type, sd) %>% 
   count(bf_prop) %>% 
   filter(type != "freq") %>% 
   pivot_wider(names_from = "bf_prop", values_from = "n") %>% 
   rename(x = null, 
          non = no)
-bf_2group$x[is.na(bf_2group$x)] <- 0
-
-bf_3group <- group3GLMER %>% 
-  group_by(samplesize, type) %>% 
-  count(bf_prop) %>% 
-  filter(type != "freq") %>% 
-  pivot_wider(names_from = "bf_prop", values_from = "n")  %>% 
-  rename(x = null, 
-         non = no)
-bf_3group$x[is.na(bf_3group$x)] <- 0
+bf$x[is.na(bf$x)] <- 0
 ```
 
 #confidence intervals
 ```{r}
-wald_2group$ci <- binom.bayes(wald_2group$x, 1000, conf.level = 0.95, tol = 1e-9)
-wald_2group$test <- "pval"
+#each sd 64000/2 = 32000
+#each simulation 2 groups - 32000/2 = 16000
+#each group 16000/4 = 
 
-wald_3group$ci  <- binom.bayes(wald_3group$x, 1000, conf.level = 0.95)
-wald_3group$test <- "pval"
+wald$ci <- binom.bayes(wald$x, 1000, conf.level = 0.95, tol = 1e-9)
+wald$test <- "pval"
 
-bf_2group$ci <- binom.bayes(bf_2group$x, 1000, conf.level = 0.95)
-bf_2group$test <- "bf"
+bf$ci <- binom.bayes(bf$x, 1000, conf.level = 0.95, tol = 1e-9)
+bf$test <- "bf"
 
-bf_3group$ci <- binom.bayes(bf_3group$x, 1000, conf.level = 0.95)
-bf_3group$test <- "bf"
 ```
 
 
 #make one big plot of cis 
 ##2group 
 ```{r}
-ci2 <- bind_rows(wald_2group, bf_2group)
-ci3 <- bind_rows(wald_3group, bf_3group)
+ci <- bind_rows(wald, bf)
 
 #wald p value 
-ci2 <- ci2 %>% filter(type != "bayes_flatprior"|test != "bf")
-ci3 <- ci3 %>% filter(type != "bayes_flatprior"|test != "bf")
+ci <- ci %>% filter(type != "bayes_flatprior"|test != "bf")
 
-ci2$type_f = factor(ci2$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_widerprior"))
-ci2 <- ci2 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
-                                                      "bayes_flatprior" = "Flat Prior",
-                                                      "bayes_widerprior" = "Student Wider Prior", 
-                                                      "bayes_tighterprior" = "Student Tighter Prior"), 
-                      test = recode(test, "pval" = "p-values", "bf" = "Bayes Factors")) 
-
-ci3$type_f = factor(ci3$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_widerprior"))
-ci3 <- ci3 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
+ci$type_f = factor(ci$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_widerprior"))
+ci <- ci %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
                                                       "bayes_flatprior" = "Flat Prior",
                                                       "bayes_widerprior" = "Student Wider Prior", 
                                                       "bayes_tighterprior" = "Student Tighter Prior"), 
@@ -222,26 +232,44 @@ ci3 <- ci3 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist",
 ```
 
 ```{r}
-ggplot(ci2, aes(x = samplesize, y = ci$mean)) + 
-  geom_line() + 
-  geom_point(size = .2)  + 
-  facet_grid(test ~ type_f, labeller = labeller(type_f = label_wrap_gen(10))) + 
-  geom_hline(data = filter(ci2, test == "p-values"), aes(yintercept = .05), colour = "blue", linetype = 2) + 
-  ylab("Rate of Significance/BF>3") +
-  xlab("Sample Size") + 
-  labs(title = "glm 2 group CI ") 
-
-ggsave("glmer_2group_CI.png", width = 30, height = 20, units = "cm")
-
-ggplot(ci3, aes(x = samplesize, y = ci$mean)) + 
-  geom_line() + 
+ci_pval <- ci %>% filter(test == "p-values")
+ci0.5 <- ci_pval %>% filter(sd == 0.5)
+  
+ggplot(ci_pval, aes(x = as.factor(samplesize), y = ci$mean, group = as.factor(sd))) + 
   geom_point(size = .2) + 
-  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 1, colour = "blue") + 
-  facet_grid(test ~ type_f, labeller = labeller(type_f = label_wrap_gen(10))) + 
-  geom_hline(data = filter(ci2, test == "p-values"), aes(yintercept = .05), colour = "blue", linetype = 2) + 
-  ylab("Rate of Significance/BF>3") +
-  xlab("Sample Size")+ 
-  labs(title = "glm 3 group CI ")
+  facet_grid(group ~ type_f) + 
+  geom_line(aes(colour = as.factor(sd))) + 
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Rate of Significance") +
+  scale_y_continuous(limits = c(0, 1)) + 
+  xlab("Sample Size") + 
+  labs(title = "glmer pval CI ")
 
-ggsave("glmer_3group_CI.png", width = 30, height = 20, units = "cm")
+ggsave("glmer_pval_CI.png")
+
+ci_bf <- ci %>% filter(test == "Bayes Factors")
+
+ggplot(ci_bf, aes(x = as.factor(samplesize), y = ci$mean, group = as.factor(sd))) + 
+  geom_point(size = .2) + 
+  facet_grid(group ~ type_f) + 
+  geom_line(aes(colour = as.factor(sd))) +  
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, colour = "blue") +
+  ylab("Rate of BF > 3 for the null") +
+  xlab("Sample Size")+ 
+  labs(title = "glmer bf CI ")
+
+ggsave("glmer_bf_CI.png")
+```
+
+
+#check nominality 
+```{r}
+pval <- ci %>% filter(test == "p-values") %>% group_by(type_f, samplesize, group, sd) %>% 
+  summarise(nominal = if_else(ci$lower <= .05 & ci$upper >= .05, 1, 0),
+            aboveNominal = if_else(ci$lower >= .05 & ci$upper >= .05, 1, 0),
+            belowNominal = if_else(ci$lower <= .05 & ci$upper <= .05, 1, 0))
+pval$rate <- ci_pval$ci$mean
+#group by type, then check if lower < .05 and upper > .05 -->1 
 ```
