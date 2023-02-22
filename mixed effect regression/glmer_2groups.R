@@ -1,3 +1,5 @@
+source("convergence.R")
+
 glmer_2groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
   prob <- qlogis(rbeta(1, 2, 2))
 
@@ -15,6 +17,8 @@ glmer_2groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
   #freq model
   freq <- glmer(cbind(y, n-y) ~ group + (1|id), data, family=binomial())
   freq_pval <- summary(freq)$coef[2, 4]
+  conv <- mod_check(freq)
+  freq_df <- freq %>% tidy()
   
   #null model 
   bayes_intercept <- update(bayes_intercept_prefit, 
@@ -109,6 +113,8 @@ glmer_2groups <- function(i, sample_size, re_sd, mod_iter, mod_warmup){
                    out_flatbayes, 
                    out_tighterbayes, 
                    out_widerbayes)
+  out$freqConv = conv
+  out = out %>% mutate(frequentist = list(freq_df))
   return(out)
   Sys.sleep(2)
 }
