@@ -1,0 +1,74 @@
+---
+title: "drinks"
+output: html_document
+---
+
+```{r}
+setwd("/home/megan/frequentist-bayesian-p-values-/simulation")
+#set up 
+library(brms)
+library(rstanarm)
+library(bayestestR)
+library(BayesFactor)
+library(cmdstanr)
+library(emmeans)
+library(parallel)
+library(bridgesampling)
+library(tidyverse)
+library(extraDistr)
+options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
+options(brms.backend = "rstan")
+library("extraDistr")
+library(lme4)
+library(binom)
+library(afex)
+```
+
+```{r}
+exp1 <- read.csv("Experiment_1.csv")
+exp3a <-read.csv("Experiment_3A.csv")
+exp3b <-read.csv("Experiment_3B.csv")
+
+ordered <- exp1 %>% filter(DV_order_at_all == 1) #362 ppt
+```
+
+#3b replication
+```{r}
+desc <- exp3b %>% group_by(IV_condition) %>% 
+  summarise(meanCal = mean(DV_calories_consumed, na.rm = T), 
+            sdCal = sd(DV_calories_consumed, na.rm = T))
+
+lm_model <- lm(DV_calories_consumed ~ as.factor(IV_condition), exp3b)
+summary(lm_model)
+joint_tests(lm_model)
+```
+#bayesian-frequentist method 
+```{r}
+bayes_3a <- brm()
+
+anova_bayes <- brm(formula = DV_calories_consumed ~ as.factor(IV_condition),
+                 data = exp3b, 
+                 save_pars = save_pars(all = TRUE), 
+                 iter = 11000, warmup = 1000,
+                 chains = 4, cores = 1)
+summary(anova_bayes)
+
+exp3b_test <- joint_tests(anova_bayes)
+exp3b_test <- joint_tests(anova_bayes)
+
+exp3b_test
+pf(exp3b_test$F.ratio, exp3b_test$df1, df2 = 283, lower.tail = FALSE)
+
+
+nullmod <- brm(formula = DV_calories_consumed ~ 1,
+                 data = exp3b, 
+                 save_pars = save_pars(all = TRUE), 
+                 iter = 11000, warmup = 1000,
+                 chains = 4, cores = 1)
+summary(nullmod)
+
+bf_test <- bridgesampling::bayes_factor(anova_bayes, nullmod)
+bf_test$bf
+```
+
+

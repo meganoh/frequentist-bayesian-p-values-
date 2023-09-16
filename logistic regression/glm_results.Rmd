@@ -24,9 +24,21 @@ library(binom)
 ```
 
 ```{r}
-group3n50 <- bind_rows(glmresults_3groups, .id = "id")
-group3n1000$id <- as.numeric(group3n1000$id)
-group3n1000 <- group3n1000 %>% filter(id <= 1000)
+group2n1000 <- bind_rows(glmresults_2groups, .id = "id")
+group3n951 <- bind_rows(glmresults_3groups, .id = "id")
+
+group2nExtra <- bind_rows(glmresults_2groups, .id = "id")
+group3nExtra <- bind_rows(glmresults_3groups, .id = "id")
+
+
+glmresults_2groups <- bind_rows(glmresults_2groups_998, glmresults_2groups_Extra, .id = "id")
+group2n1000
+
+group2 <- bind_rows(group2n20, group2n30, group2n50, group2n100, group2n1000)
+group3 <- bind_rows(group3n20, group3n30, group3n50, group3n100, group3n1000)
+
+glmresults_2groups$id <- as.numeric(glmresults_2groups$id)
+group2n1000 <- glmresults_2groups %>% filter(id <= 1000)
 
 group2n1000 <- group2n1000 %>% rename(samplesize = n)
 group3n1000$id <- as.character(group3n1000$id)
@@ -35,38 +47,31 @@ group2GLM <- bind_rows(group2GLM, group2n1000)
 
 rm(g20, glmresults_3groups)
 
-save(glmresults_3groups, file = "glm_3groups_n1000_iter1000.rda")
-save(group2GLM, file = "glm_2groupresults.rda")
-save(group3GLM, file = "glm_3groupresults.rda")
+save(group2n1000, file = "glm_2groups_n1000_iter1000.rda")
+save(group2, file = "glm_2GROUP.rda")
+save(group3, file = "glm_3GROUP.rda")
+
+
+group2$group <- 2
+group3$group <- 3
+
+glm <- bind_rows(group2, group3)
+save(glm, file = "glm_results.rda")
 ```
 
 #tests 
 ```{r}
 alpha <- 0.05 #set threshold for significance 
-#pvalues
-group2GLM <- group2GLM %>% 
-  mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
 
-group3GLM <- group3GLM %>% 
-  mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+glm <- glm %>% 
+  mutate(psig = if_else(pval < alpha, "sig", "nonsig"), 
+         psig_df = if_else(pval_df < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
 
 #bayes factors 
-group2GLM <- group2GLM %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
-group3GLM <- group3GLM %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
-group3n50 <- group3n50 %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no")) 
+glm <- glm %>% 
+  mutate(bf_comb = if_else(exp(bf) < 1/3, "alt", if_else(exp(bf) > 3, "null", "no")))
 
-count <- group3n50 %>% 
-  group_by(test) %>% count(bf_prop)
-
-#loo & waic 
-group2GLM <- group2GLM %>% mutate(
-  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
-  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")) 
-
-group3GLM <- group3GLM %>% mutate(
-  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
-  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
-)
+glm <- glm %>% rename(type = test, samplesize = n)
 ```
 
 
@@ -74,6 +79,7 @@ group3GLM <- group3GLM %>% mutate(
 ```{r}
 load("glm_2groupresults.rda")
 load("glm_3groupresults.rda")
+load("glm_results.rda")
 ```
 
 #plot of raw results 
@@ -83,16 +89,16 @@ group2GLM$type_f = factor(group2GLM$type, levels=c('freq','bayes_flatprior','bay
 plot_pval2 <- group2GLM %>% mutate(samplesize = paste0("n = ", samplesize), 
                                    type_f = recode(type_f, "freq" = "Frequentist", 
                                                    "bayes_flatprior" = "Flat Prior",
-                                                   "bayes_widerprior" = "Student Wider Prior", 
-                                                   "bayes_tighterprior" = "Student Tighter Prior") )
+                                                   "bayes_widerprior" = "Wider Prior", 
+                                                   "bayes_tighterprior" = "Tighter Prior") )
 plot_pval2$samplesize = factor(plot_pval2$samplesize, levels=c('n = 20','n = 30','n = 50','n = 100', 'n = 1000'))
 
 group3GLM$type_f = factor(group3GLM$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_widerprior'))
 plot_pval3 <- group3GLM %>% mutate(samplesize = paste0("n = ", samplesize), 
                                    type_f = recode(type_f, "freq" = "Frequentist", 
                                                    "bayes_flatprior" = "Flat Prior",
-                                                   "bayes_widerprior" = "Student Wider Prior", 
-                                                   "bayes_tighterprior" = "Student Tighter Prior") )
+                                                   "bayes_widerprior" = "Wider Prior", 
+                                                   "bayes_tighterprior" = "Tighter Prior") )
 plot_pval3$samplesize = factor(plot_pval3$samplesize, levels=c('n = 20','n = 30','n = 50','n = 100', 'n = 1000'))
 ```
 
@@ -147,104 +153,200 @@ ggsave("glm_3group_bfRAW.png", width = 30, height = 20, units = "cm")
 #CIS
 ```{r}
 iter = 1000
-wald_2group <- group2GLM %>% 
-  group_by(samplesize, type) %>% 
+wald <- glm %>% 
+  group_by(group, samplesize, type) %>% 
   count(psig) %>% 
   pivot_wider(names_from = "psig", values_from = "n") %>% 
   rename(x = sig, 
          non = nonsig) 
-wald_2group$x[is.na(wald_2group$x)] <- 0
+wald$x[is.na(wald$x)] <- 0
 
-wald_3group <- group3GLM %>% 
-  group_by(samplesize, type) %>% 
-  count(psig)%>% 
-  pivot_wider(names_from = "psig", values_from = "n") %>% 
+wald_df <- glm %>% 
+  group_by(group, samplesize, type) %>% 
+  count(psig_df) %>% 
+  pivot_wider(names_from = "psig_df", values_from = "n") %>% 
   rename(x = sig, 
-         non = nonsig)
-wald_3group$x[is.na(wald_3group$x)] <- 0
-
-bf_2group <- group2GLM %>% 
-  group_by(samplesize, type) %>% 
-  count(bf_prop) %>% 
-  filter(type != "freq") %>% 
-  pivot_wider(names_from = "bf_prop", values_from = "n") %>% 
-  rename(x = null, 
-         non = no)
-bf_2group$x[is.na(bf_2group$x)] <- 0
-
-bf_3group <- group3GLM %>% 
-  group_by(samplesize, type) %>% 
-  count(bf_prop) %>% 
-  filter(type != "freq") %>% 
-  pivot_wider(names_from = "bf_prop", values_from = "n")  %>% 
-  rename(x = null, 
-         non = no)
-bf_3group$x[is.na(bf_3group$x)] <- 0
+         non = nonsig) 
+wald_df$x[is.na(wald_df$x)] <- 0
 ```
 
 #confidence intervals
 ```{r}
-wald_2group$ci <- binom.bayes(wald_2group$x, 1000, conf.level = 0.95, tol = 1e-9)
-wald_2group$test <- "pval"
+wald$ci <- binom.bayes(wald$x, 1000, conf.level = 0.95)
+wald$test <- "pval"
 
-wald_3group$ci  <- binom.bayes(wald_3group$x, 1000, conf.level = 0.95)
-wald_3group$test <- "pval"
 
-bf_2group$ci <- binom.bayes(bf_2group$x, 1000, conf.level = 0.95)
-bf_2group$test <- "bf"
-
-bf_3group$ci <- binom.bayes(bf_3group$x, 1000, conf.level = 0.95)
-bf_3group$test <- "bf"
+wald_df$ci <- binom.bayes(wald_df$x, 1000, conf.level = 0.95)
+wald_df$test <- "pval"
 ```
 
 
 #make one big plot of cis 
 ##2group 
 ```{r}
-ci2 <- bind_rows(wald_2group, bf_2group)
-ci3 <- bind_rows(wald_3group, bf_3group)
 
-#wald p value 
-ci2 <- ci2 %>% filter(type != "bayes_flatprior"|test != "bf")
-ci3 <- ci3 %>% filter(type != "bayes_flatprior"|test != "bf")
-
-ci2$type_f = factor(ci2$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_widerprior"))
-ci2 <- ci2 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
+wald$type_f = factor(wald$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_widerprior"))
+wald <- wald %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
                                                       "bayes_flatprior" = "Flat Prior",
-                                                      "bayes_widerprior" = "Student Wider Prior", 
-                                                      "bayes_tighterprior" = "Student Tighter Prior"), 
+                                                      "bayes_widerprior" = "Wider Prior", 
+                                                      "bayes_tighterprior" = "Tighter Prior"), 
                       test = recode(test, "pval" = "p-values", "bf" = "Bayes Factors")) 
 
-ci3$type_f = factor(ci3$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_widerprior"))
-ci3 <- ci3 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
+wald_df$type_f = factor(wald_df$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_widerprior"))
+wald_df <- wald_df %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
                                                       "bayes_flatprior" = "Flat Prior",
-                                                      "bayes_widerprior" = "Student Wider Prior", 
-                                                      "bayes_tighterprior" = "Student Tighter Prior"), 
+                                                      "bayes_widerprior" = "Wider Prior", 
+                                                      "bayes_tighterprior" = "Tighter Prior"), 
                       test = recode(test, "pval" = "p-values", "bf" = "Bayes Factors")) 
+
 ```
 
 ```{r}
-ci2$samplesize_f <- as.factor(ci2$samplesize)
-ggplot(ci2, aes(x = samplesize_f, y = ci$mean)) + 
-  geom_line(aes(group = samplesize_f)) + 
-  geom_point(size = .2)  + 
-  facet_grid(test ~ type_f, labeller = labeller(type_f = label_wrap_gen(10))) + 
-  geom_hline(data = filter(ci2, test == "p-values"), aes(yintercept = .05), colour = "blue", linetype = 2) + 
-  ylab("Rate of Significance/BF>3") +
-  xlab("Sample Size") + 
-  labs(title = "glm 2 group CI ") 
 
-ggsave("glm_2group_CI.png", width = 30, height = 20, units = "cm")
-
-ggplot(ci3, aes(x = samplesize, y = ci$mean)) + 
+ggplot(wald, aes(x = as.factor(samplesize), y = ci$mean, group = 1)) + 
   geom_line() + 
   geom_point(size = .2) + 
-  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 1, colour = "blue") + 
-  facet_grid(test ~ type_f, labeller = labeller(type_f = label_wrap_gen(10))) + 
-  geom_hline(data = filter(ci2, test == "p-values"), aes(yintercept = .05), colour = "blue", linetype = 2) + 
-  ylab("Rate of Significance/BF>3") +
-  xlab("Sample Size")+ 
-  labs(title = "glm 3 group CI ")
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Type I Error Rate") +
+  scale_y_continuous(limits = c(0, 0.5)) + 
+  xlab("Sample Size") + 
+  labs(title = "glm pval CI ") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        legend.position = c(0.2, 0.8), 
+        legend.title = element_blank(),
+        plot.title = element_text(size = 9))
 
-ggsave("glm_3group_CI.png", width = 30, height = 20, units = "cm")
+ggsave("glm_pval_CI.png")
+
+ggplot(wald_df, aes(x = as.factor(samplesize), y = ci$mean, group = 1)) + 
+  geom_line() + 
+  geom_point(size = .2) + 
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Type I Error Rate") +
+  scale_y_continuous(limits = c(0, 0.5)) + 
+  xlab("Sample Size") + 
+  labs(title = "glm pval CI DF") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        legend.position = c(0.2, 0.8), 
+        legend.title = element_blank(),
+        plot.title = element_text(size = 9))
+
+
+ggsave("glm_pval_CI_DF.png")
+
+```
+```{r}
+wald = wald %>% mutate(group = recode(group, "2" = "2 group",  "3" = "3 group"), 
+                       samplesize = as.factor(samplesize))
+ggplot(wald, aes(x = samplesize, y = ci$mean, group = type_f, colour = type_f)) + 
+  geom_line(size = 1.5) + 
+  geom_point(size = .2) + 
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, size = 1.5) + 
+  facet_wrap(vars(group)) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Type I Error Rate") +
+  scale_y_continuous(limits = c(0, 0.15)) + 
+  xlab("Sample Size") + 
+  labs(title = "glm pval CI ", colour = "Model type") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"),
+        axis.text = element_text(size = 15),
+        axis.title = element_text(face="bold", size = 15),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        plot.title = element_text(size = 9), 
+        legend.position = c(0.35, 0.75),
+        legend.text = element_text(size = 10),
+          strip.text.x = element_text(size = 14)) 
+ggsave("glm_pval_CI_poster.png")
+```
+#check nominality 
+```{r}
+pval <- wald %>% group_by(type_f, samplesize, group) %>% 
+  summarise(nominal = if_else(ci$lower < .05 & ci$upper > .05, 1, 0),
+            aboveNominal = if_else(ci$lower > .05 & ci$upper > .05, 1, 0),
+            belowNominal = if_else(ci$lower < .05 & ci$upper < .05, 1, 0))
+pval$rate <- ci_pval$ci$mean
+
+pval_df <- wald_df %>% group_by(type_f, samplesize, group) %>% 
+  summarise(nominal = if_else(ci$lower < .05 & ci$upper > .05, 1, 0),
+            aboveNominal = if_else(ci$lower > .05 & ci$upper > .05, 1, 0),
+            belowNominal = if_else(ci$lower < .05 & ci$upper < .05, 1, 0))
+pval$rate <- ci_pval$ci$mean
+#group by type, then check if lower < .05 and upper > .05 -->1 
+```
+
+#bayes factor area plot 
+```{r}
+group2GLM$group = 2
+group3GLM$group = 3
+
+data <- bind_rows(group2GLM, group3GLM)
+data <- data %>% filter(type != "freq" & type != "bayes_flatprior") %>% 
+  group_by(group, samplesize, type_f) %>%
+  count(bf_comb) %>%
+  mutate(percentage = n / sum(n))
+data <- data %>% mutate(bf_comb = recode(bf_comb, "alt" = "Evidence for the Alternative", "no" = "Ambiguous Evidence", "null" = "Evidence for the Null"))
+
+group2NULL <- data %>% filter(group == 2, samplesize < 1000) %>% 
+  filter(samplesize != 100 | type_f != "bayes_widerprior") %>% 
+  filter(bf_comb == "Evidence for the Alternative") %>% 
+  mutate(bf_comb = "Evidence for the Null", n = 0, percentage = 0)
+data <- rbind(data, group2NULL)
+group3NULL <- data %>% filter(group == 3) %>% 
+  filter(samplesize <= 50, type_f == "bayes_tighterprior") %>% 
+  filter(bf_comb == "Evidence for the Alternative") %>% 
+  mutate(bf_comb = "Evidence for the Null", n = 0, percentage = 0)
+data <- rbind(data, group3NULL)
+
+data <- data %>% group_by(samplesize, type_f) %>% 
+  mutate(sum = sum(percentage))
+
+data <- data %>% mutate(log_ss = log(samplesize), 
+                        log10_ss = log10(samplesize), 
+                        log2_ss = log2(samplesize), 
+                        fake_ss = samplesize) %>% 
+  mutate(fake_ss = dplyr::recode(fake_ss, "50" = 40, "100" = 50, "1000" = 60))
+
+data$bf_comb = factor(data$bf_comb, levels=c("Evidence for the Null", "Ambiguous Evidence","Evidence for the Alternative"))
+data$group_f = data$group 
+data <- data %>% mutate(group_f = recode(group_f, "2" = "2 group", "3" = "3 group"))
+data$type_r = data$type_f 
+data <- data %>% mutate(type_r = recode(type_r,  "bayes_widerprior" = "Wider Prior", "bayes_tighterprior" = "Tighter Prior"))
+
+ggplot(data, aes(x = fake_ss, y = percentage, fill = bf_comb)) + 
+   geom_area(colour = "black", alpha = 0.6) + facet_grid(group_f ~ type_r) + 
+  theme_bw() + 
+  ylab("Proportion of Bayes Factors")  + 
+  xlab("Sample Size") + 
+  labs(title = "glm bf") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        plot.title = element_text(size = 9), 
+        legend.key.size = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.3, 'cm'), #change legend key height
+        legend.key.width = unit(0.3, 'cm'), #change legend key width
+        legend.text = element_text(size=7), 
+        legend.position = c(0.155, 0.85)) + #change legend text font size 
+  scale_x_continuous(breaks = c(20, 30, 40, 50, 60), labels = c(20, 30, 50, 100, 1000)) + 
+  guides(fill = guide_legend(title = NULL)) + scale_fill_manual(values = c("#E69F00", "#56B4E9", 
+    "#CC79A7"))
+
+
+ggsave("glm_bf.png")
 ```

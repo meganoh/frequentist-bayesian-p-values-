@@ -9,5 +9,5 @@ mod_check <- function(mod) {
       retval = 2 #returns 2 if there was another convergence problem
     }
   }
-  retval #returns the value (1, 0, or -1)
+  retval #returns the value
 }

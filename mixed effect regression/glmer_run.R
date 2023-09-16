@@ -14,12 +14,15 @@ options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
 options(brms.backend = "rstan")
 library("extraDistr")
 library(lme4)
+library(broom.mixed)
 
 source("glmer_2groups.R")
 source("glmer_3groups.R")
+source("convergence.R")
 
 sample_size = 20
 sigma = 1
+re_sd = 1
 mod_iter = 11000
 mod_warmup = 1000
 
@@ -42,6 +45,7 @@ bayes_intercept_prefit = brm(formula = y|trials(n) ~ 1 + (1|id),
                              save_pars = save_pars(all = TRUE), 
                              iter = mod_iter, warmup = mod_warmup,
                              chains = 4, cores = 1)
+bayes_intercept_prefit$model
 
 bayes_flatprior_prefit = brm(formula = y|trials(n) ~ group + (1|id), 
                              data = data, 
@@ -68,28 +72,42 @@ bayes_widerprior_prefit <- brm(formula = y|trials(n) ~ group + (1|id),
                                iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
 
-
 glmerrun_2groups(iter = 1000, sample_size = 20, re_sd = 0.5,
-                 mod_iter = 1100, mod_warmup = 1000)
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6) 
 glmerrun_3groups(iter = 1000, sample_size = 20, re_sd = 0.5,
-                 mod_iter = 1100, mod_warmup = 1000)
+                 mod_iter = 1100, mod_warmup = 10000, cores = 6) 
 
 glmerrun_2groups(iter = 1000, sample_size = 30, re_sd = 0.5, 
-                 mod_iter = 1100, mod_warmup = 1000)
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6) 
 glmerrun_3groups(iter = 1000, sample_size = 30, re_sd = 0.5,
-                 mod_iter = 1100, mod_warmup = 1000)
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
 
 glmerrun_2groups(iter = 1000, sample_size = 50, re_sd = 0.5,
-                 mod_iter = 1100, mod_warmup = 1000)
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6) 
 glmerrun_3groups(iter = 1000, sample_size = 50, re_sd = 0.5,
-                 mod_iter = 1100, mod_warmup = 1000)
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
+
+glmerrun_2groups(iter = 1000, sample_size = 100, re_sd = 0.5,
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
+glmerrun_3groups(iter = 1000, sample_size = 100, re_sd = 0.5,
+                 mod_iter = 1100, mod_warmup = 10000, cores = 6)
+
+glmerrun_2groups(iter = 1000, sample_size = 20, re_sd = 1,
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
+glmerrun_3groups(iter = 1000, sample_size = 20, re_sd = 1,
+                 mod_iter = 1100, mod_warmup = 10000, cores = 6)
+
+glmerrun_2groups(iter = 1000, sample_size = 30, re_sd = 1, 
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
+glmerrun_3groups(iter = 1000, sample_size = 30, re_sd = 1,
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
+
+glmerrun_2groups(iter = 1000, sample_size = 50, re_sd = 1,
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
+glmerrun_3groups(iter = 1000, sample_size = 50, re_sd = 1,
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
 
 glmerrun_2groups(iter = 1000, sample_size = 100, re_sd = 1,
-                 mod_iter = 1100, mod_warmup = 1000)
-glmerrun_3groups(iter = 1, sample_size = 100, re_sd = 0.5,
-                 mod_iter = 1100, mod_warmup = 10000)
-
-
-
-
-
+                 mod_iter = 1100, mod_warmup = 1000, cores = 6)
+glmerrun_3groups(iter = 1000, sample_size = 100, re_sd = 1,
+                 mod_iter = 1100, mod_warmup = 10000, cores = 6)

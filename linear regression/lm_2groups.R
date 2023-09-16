@@ -1,8 +1,10 @@
 #2 group simulation
 fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
+  
   data <- data.frame(group = rep(c("control", "treatmentA"), each = sample_size), 
                      value = c(rnorm(n = sample_size), 
                                rnorm(n = sample_size)))
+  
   data$group <- factor(data$group)
   
   means <- data %>% group_by(group) %>% 
@@ -19,23 +21,33 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   se <- var$se
   
   #freq model
+  
   freq <- lm(value ~ group, data)
+  
   freq_pval <- summary(freq)$coef[2, 4]
   
   #bayes model - null 
+  
   bayes_intercept <- update(bayes_intercept_prefit, 
                             newdata = data, recompile = FALSE)
   
   #bayes model - flat prior 
   bayes_flatprior <- update(bayes_flatprior_prefit, 
                             newdata = data,  recompile = FALSE)
+  
   bayes_flat_test <- joint_tests(bayes_flatprior)
+  
+  
   bayes_flat_pval <- bayes_flat_test$p.value
   
   #bayes model - student prior 
   bayes_studentprior <- update(bayes_studentprior_prefit, 
                                newdata = data, recompile = FALSE)
+  
+  
   bayes_student_test <- joint_tests(bayes_studentprior)
+  
+  
   bayes_student_pval <- bayes_student_test$p.value
   
   #bayes model - oosterwijk prior 
@@ -75,13 +87,20 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   
   #bayes factors 
   #flat 
+  
   bf_flat_test <- bridgesampling::bayes_factor(bayes_intercept, 
                                                bayes_flatprior, log = TRUE)
+  
+  
   bf_flat <- bf_flat_test$bf
   
   #student
+  
+  
   bf_student_test <- bridgesampling::bayes_factor(bayes_intercept, 
                                                   bayes_studentprior, log = TRUE)
+  
+  
   bf_student <- bf_student_test$bf
   
   #oosterwijk

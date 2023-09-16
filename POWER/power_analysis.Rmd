@@ -1,0 +1,9 @@
+---
+title: "power_run"
+output: html_document
+---
+
+```{r}
+d.2_n20 <- bind_rows(powerResults, .id = "id")
+
+```

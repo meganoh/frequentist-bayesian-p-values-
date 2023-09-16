@@ -19,6 +19,7 @@ library(binom)
 library(ggplot2)
 ```
 
+#initial reading of results 
 ```{r}
 #read in results 
 tighter3_n100 <- bind_rows(glmerresults_3groups, .id = "id")
@@ -50,8 +51,10 @@ final_threegroups <- final_threegroups %>%
          likelihood_max_sig = if_else(p_likelihood_max < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
 
 #bayes factors 
-final_twogroups <- final_twogroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
-final_threegroups <- final_threegroups %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+final_twogroups <- final_twogroups %>% mutate(bf_transf = exp(bf),
+  bf_alt = if_else(exp(bf) < 1/3, "null", "no"))
+final_threegroups <- final_threegroups %>% mutate(bf_transf = exp(bf), 
+                                                  bf_alt = if_else(exp(bf) < 1/3, "null", "no"))
 exp(0.57763990)
 
 #loo & waic 
@@ -66,16 +69,23 @@ final_threegroups <- final_threegroups %>% mutate(
   waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
 ) %>% 
   rename(samplesize = n)
+
+final_twogroups <- final_twogroups %>% 
+  mutate(bf_comb = if_else(exp(bf) < 1/3, "alt", if_else(exp(bf) > 3, "null", "no")))
+final_threegroups <- final_threegroups %>% 
+  mutate(bf_comb = if_else(exp(bf) < 1/3, "alt", if_else(exp(bf) > 3, "null", "no")))
+
+save(final_twogroups, file = "simulation_2groupFINAL.rda")
 save(final_threegroups, file = "simulation_3groupFINAL.rda")
 ```
 
-#run from here for results 
+#RUN FROM HERE FOR FINAL RESULTS 
 ```{r}
 load("simulation_2groupFINAL.rda")
 load("simulation_3groupFINAL.rda")
 ```
 
-#plot by type of test
+#raw plots
 ```{r}
 #wald p value 
 final_twogroups$type_f = factor(final_twogroups$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_studentprior',"bayes_oosterwijkprior"))
@@ -145,7 +155,6 @@ ggplot(plot_bf3, aes(x = bf))  +
 ggsave("lm_3group_bfRAW.png", width = 30, height = 20, units = "cm")
 ```
 
-
 #plot confidence intervals 
 ```{r}
 iter = 1000
@@ -165,22 +174,23 @@ wald_3group <- final_threegroups %>%
 
 bf_2group <- final_twogroups %>% 
   group_by(samplesize, type) %>% 
-  count(bf_prop) %>% 
+  count(bf_alt) %>% 
   filter(type != "freq") %>% 
-  pivot_wider(names_from = "bf_prop", values_from = "n") %>% 
+  pivot_wider(names_from = "bf_alt", values_from = "n") %>% 
   rename(x = null, 
          non = no)
 bf_2group$x[is.na(bf_2group$x)] <- 0
 
 bf_3group <- final_threegroups %>% 
   group_by(samplesize, type) %>% 
-  count(bf_prop) %>% 
+  count(bf_alt) %>% 
   filter(type != "freq") %>% 
-  pivot_wider(names_from = "bf_prop", values_from = "n")  %>% 
+  pivot_wider(names_from = "bf_alt", values_from = "n")  %>% 
   rename(x = null, 
          non = no)
 bf_3group$x[is.na(bf_3group$x)] <- 0
 ```
+
 #LOO & WAIC 
 ```{r}
 loo_2group <- final_twogroups %>% 
@@ -223,20 +233,6 @@ wald_2group$test <- "pval"
 
 wald_3group$ci  <- binom.bayes(wald_3group$x, 1000, conf.level = 0.95)
 wald_3group$test <- "pval"
-
-bf_2group$ci <- binom.bayes(bf_2group$x, 1000, conf.level = 0.95)
-bf_2group$test <- "bf"
-
-bf_3group$ci <- binom.bayes(bf_3group$x, 1000, conf.level = 0.95)
-bf_3group$test <- "bf"
-```
-
-```{r}
-loo_2group$ci <- binom.bayes(loo_2group$x, 1000, conf.level = 0.95)
-loo_3group$ci <- binom.bayes(loo_3group$x, 1000, conf.level = 0.95)
-
-waic_2group$ci <- binom.bayes(waic_2group$x, 1000, conf.level = 0.95)
-waic_3group$ci <- binom.bayes(waic_3group$x, 1000, conf.level = 0.95)
 ```
 
 #make one big plot of cis 
@@ -244,12 +240,8 @@ waic_3group$ci <- binom.bayes(waic_3group$x, 1000, conf.level = 0.95)
 ```{r}
 ci2 <- bind_rows(wald_2group, bf_2group)
 ci3 <- bind_rows(wald_3group, bf_3group)
-
-
-label_wrap <- function(variable, value) {
-  lapply(strwrap(as.character(value), width=25, simplify=FALSE), 
-         paste, collapse="\n")
-}
+ci2$group <- "2 group"
+ci3$group <- "3 group"
 
 #wald p value 
 ci2 <- ci2 %>% filter(type != "bayes_flatprior"|test != "bf")
@@ -258,45 +250,159 @@ ci3 <- ci3 %>% filter(type != "bayes_flatprior"|test != "bf")
 ci2$type_f = factor(ci2$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_oosterwijkprior"))
 ci2 <- ci2 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
                                                       "bayes_flatprior" = "Flat Prior",
-                                                      "bayes_studentprior" = "Student Wider Prior", 
-                                                      "bayes_tighterprior" = "Student Tighter Prior", 
+                                                      "bayes_studentprior" = "Wider Prior", 
+                                                      "bayes_tighterprior" = "Tighter Prior", 
                                                       "bayes_oosterwijkprior" = "Oosterwijk Prior"), 
                       test = recode(test, "pval" = "p-values", "bf" = "Bayes Factors")) 
 
 ci3$type_f = factor(ci3$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_oosterwijkprior"))
 ci3 <- ci3 %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
                                                       "bayes_flatprior" = "Flat Prior",
-                                                      "bayes_studentprior" = "Student Wider Prior", 
-                                                      "bayes_tighterprior" = "Student Tighter Prior", 
+                                                      "bayes_studentprior" = "Wider Prior", 
+                                                      "bayes_tighterprior" = "Tighter Prior", 
                                                       "bayes_oosterwijkprior" = "Oosterwijk Prior"), 
                       test = recode(test, "pval" = "p-values", "bf" = "Bayes Factors")) 
+
+ci_plot <- bind_rows(ci2, ci3)
+```
+
+
+
+```{r}
+ci_pval <- ci_plot %>% filter(test == "p-values")
+  
+ggplot(ci_pval, aes(x = as.factor(samplesize), y = ci$mean, group = 1)) + 
+  geom_line() + 
+  geom_point(size = .2) + 
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Type I Error Rate") +
+  scale_y_continuous(limits = c(0, 0.7)) + 
+  xlab("Sample Size") + 
+  labs(title = "lm pval CI ") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        plot.title = element_text(size = 9))
+
+ggsave("lm_pval_CI.png")
+
+ci_bf <- ci_plot %>% filter(test == "Bayes Factors")
+
+ggplot(ci_bf, aes(x = as.factor(samplesize), y = ci$mean, group = 1)) + 
+  geom_line() + 
+  geom_point(size = .2) + 
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  ylab("Rate of Substantial Evidence for the Alternative Model") +
+  xlab("Sample Size")+ 
+  labs(title = "lm bf CI ") +
+  theme_classic() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        legend.position = c(0.2, 0.8), 
+        legend.title = element_blank(),
+        plot.title = element_text(size = 9))
+
+ggsave("lm_bf_CI.png")
 ```
 ```{r}
-ggplot(ci2, aes(x = samplesize, y = ci$mean)) + 
-  geom_line() + 
+ci_pval$type_f = factor(ci_pval$type_f, levels=c('Frequentist','Flat Prior', "Oosterwijk Prior",'Tighter Prior','Wider Prior'))
+
+ggplot(ci_pval, aes(x = samplesize, y = ci$mean, group = type_f, colour = type_f)) + 
+  geom_line(size = 1.5) + 
   geom_point(size = .2) + 
-  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 1, colour = "blue") + 
-  facet_grid(test ~ type_f, labeller = labeller(type_f = label_wrap_gen(10))) + 
-  geom_hline(data = filter(ci2, test == "p-values"), aes(yintercept = .05), colour = "blue", linetype = 2) + 
-  ylab("Rate of Significance/BF>3") +
+  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, size = 1.5) + 
+  facet_wrap(vars(group)) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Type I Error Rate") +
+  scale_y_continuous(limits = c(0, 0.6)) + 
   xlab("Sample Size") + 
-  labs(title = "lm 2 group CI ")
-
-ggsave("lm_2group_CI.png", width = 30, height = 20, units = "cm")
-
-ggplot(ci3, aes(x = samplesize, y = ci$mean)) + 
-  geom_line() + 
-  geom_point(size = .2) + 
-  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 1, colour = "blue") + 
-  facet_grid(test ~ type_f, labeller = labeller(type_f = label_wrap_gen(10))) + 
-  geom_hline(data = filter(ci2, test == "p-values"), aes(yintercept = .05), colour = "blue", linetype = 2) + 
-  ylab("Rate of Significance/BF>3") +
-  xlab("Sample Size")+ 
-  labs(title = "lm 3 group CI ")
-
-ggsave("lm_3group_CI.png", width = 30, height = 20, units = "cm")
+  labs(title = "lm pval CI ", colour = "Model type") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.text = element_text(size = 15),
+        axis.title = element_text(face="bold", size = 15),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        plot.title = element_text(size = 9), 
+        legend.position = c(0.35, 0.7),
+        legend.text = element_text(size = 10),
+          strip.text.x = element_text(size = 14)) 
+ggsave("lm_pval_CI_poster.png")
 ```
 
+#check nominality 
+```{r}
+pval <- ci_pval %>% group_by(type_f, samplesize, group) %>% 
+  summarise(nominal = if_else(ci$lower < .05 & ci$upper > .05, 1, 0),
+            aboveNominal = if_else(ci$lower > .05 & ci$upper > .05, 1, 0),
+            belowNominal = if_else(ci$lower < .05 & ci$upper < .05, 1, 0))
+pval$rate <- ci_pval$ci$mean
+#group by type, then check if lower < .05 and upper > .05 -->1 
+```
 
+#bayes factor area plot 
+```{r}
+final_twogroups$group = 2
+final_threegroups$group = 3
+
+data <- bind_rows(final_twogroups, final_threegroups)
+data <- data %>% filter(type != "freq" & type != "bayes_flatprior") %>% 
+  group_by(group, samplesize, type_f) %>%
+  count(bf_comb) %>%
+  mutate(percentage = n / sum(n))
+
+data <- data %>% group_by(samplesize, type_f) %>% 
+  mutate(sum = sum(percentage))
+
+
+tighterprior <- data %>% filter(type_f == "bayes_tighterprior" & group == 2)
+tighternull <- tighterprior %>% filter(samplesize < 100, bf_comb == "no") %>% 
+  mutate(bf_comb = "null", n = 0, percentage = 0)
+data <- rbind(tighternull, data)
+
+data <- data %>% mutate(log_ss = log(samplesize), 
+                        log10_ss = log10(samplesize), 
+                        log2_ss = log2(samplesize), 
+                        fake_ss = samplesize) %>% 
+  mutate(fake_ss = dplyr::recode(fake_ss, "50" = 40, "100" = 50))
+
+data <- data %>% mutate(bf_comb = recode(bf_comb, "alt" = "Evidence for the Alternative", "no" = "Ambiguous Evidence", "null" = "Evidence for the Null"))
+
+data$bf_comb = factor(data$bf_comb, levels=c("Evidence for the Null", "Ambiguous Evidence","Evidence for the Alternative"))
+data$group_f = data$group 
+data <- data %>% mutate(group_f = recode(group_f, "2" = "2 group", "3" = "3 group"))
+data$type_r = data$type_f 
+data <- data %>% mutate(type_r = recode(type_r,  "bayes_studentprior" = "Wider Prior", "bayes_tighterprior" = "Tighter Prior", "bayes_oosterwijkprior" = "Oosterwijk Prior"))
+
+ggplot(data, aes(x = fake_ss, y = percentage, fill = bf_comb)) + 
+   geom_area(colour = "black", alpha = 0.6) + facet_grid(group_f ~ type_r) + 
+  theme_bw() + 
+  ylab("Proportion of Bayes Factors")  + 
+  xlab("Sample Size") + 
+  labs(title = "lm bf") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        plot.title = element_text(size = 9), 
+        legend.key.size = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.3, 'cm'), #change legend key height
+        legend.key.width = unit(0.3, 'cm'), #change legend key width
+        legend.text = element_text(size=7), 
+        legend.position = c(0.86, 0.85)) + #change legend text font size 
+  scale_x_continuous(breaks = c(20, 30, 40, 50), labels = c(20, 30, 50, 100)) + 
+  guides(fill = guide_legend(title = NULL)) + scale_fill_manual(values = c("#E69F00", "#56B4E9", 
+    "#CC79A7"))
+
+ggsave("lm_bf.png")
+```
 
 

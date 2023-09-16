@@ -13,6 +13,8 @@ library(extraDistr)
 options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
 options(brms.backend = "rstan")
 library("extraDistr")
+library(broom)
+
 
 source("glm_2groups.R")
 source("glm_3groups.R")
@@ -60,39 +62,30 @@ bayes_widerprior_prefit <- brm(formula = value ~ group,
                                save_pars = save_pars(all = TRUE), 
                                iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
-glmrun_2groups(iter = 1000, sample_size = 1000, 
-               mod_iter = 1100, mod_warmup = 1000)
-glmrun_3groups(iter = 1000, sample_size = 1000, 
-               mod_iter = 1100, mod_warmup = 1000)
-
 
 glmrun_2groups(iter = 1000, sample_size = 20, 
-               mod_iter = 1100, mod_warmup = 1000)
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 glmrun_3groups(iter = 1000, sample_size = 20, 
-               mod_iter = 1100, mod_warmup = 1000)
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 
 glmrun_2groups(iter = 1000, sample_size = 30, 
-               mod_iter = 1100, mod_warmup = 1000)
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 glmrun_3groups(iter = 1000, sample_size = 30, 
-               mod_iter = 1100, mod_warmup = 1000)
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 
 glmrun_2groups(iter = 1000, sample_size = 50, 
-               mod_iter = 1100, mod_warmup = 1000)
-glmrun_3groups(iter = 1000, sample_size
-               = 50, 
-               mod_iter = 1100, mod_warmup = 1000)
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
+glmrun_3groups(iter = 1000, sample_size = 50, 
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 
 glmrun_2groups(iter = 1000, sample_size = 100, 
-               mod_iter = 1100, mod_warmup = 1000)
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 glmrun_3groups(iter = 1000, sample_size = 100, 
-               mod_iter = 1100, mod_warmup = 1000)
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 
-
-glmrun_3groups(iter = 10, sample_size = 110, 
-               mod_iter = 1100, mod_warmup = 1000)
-glmrun_2groups(iter = 1000, sample_size = 1000, 
-               mod_iter = 1100, mod_warmup = 1000)
+glmrun_2groups(iter = 10, sample_size = 1000, 
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 glmrun_3groups(iter = 1000, sample_size = 1000, 
-               mod_iter = 1100, mod_warmup = 1000)
-df <- bind_rows(glmresults_3groups, .id = "id")
+               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 
+re2u <- bind_rows(glmresults_2groups, .id = "id")

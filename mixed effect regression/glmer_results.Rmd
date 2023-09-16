@@ -24,68 +24,428 @@ library(binom)
 
 
 ```{r}
+#loop to read in results bc im lazy 
+n = c(20, 30, 50, 100)
+groups = c(2, 3)
+sd = c(0.5, 1)
+dfs <- crossing(n, groups, sd)
+dfnames <- c("")
+
+for (i in 1:16) {
+  results = load(file = paste0("~/frequentist-bayesian-p-values-/mixed effect regression/glmerresults_", dfs[i, ]$groups, "groups_n", dfs[i, ]$n, "_iter1000sd", dfs[i, ]$sd, ".rda"))
+  unbind <-  bind_rows(results, .id = "id")
+  assign(
+    x =  paste0("group", dfs[i, ]$groups, "n", dfs[i, ]$n, "sd", dfs[i, ]$sd, ".rda"), value = unbind)
+}
+```
+
+```{r}
 group2sd1n100 <- bind_rows(glmerresults_2groups, .id = "id")
 group3sd1n100 <- bind_rows(glmerresults_3groups, .id = "id")
 
+
+group2sd0.5 <- bind_rows(group2sd0.5n20, group2sd0.5n30, group2sd0.5n50, group2sd0.5n100)
+group2sd0.5$sd = 0.5
 group2sd1 <- bind_rows(group2sd1n20, group2sd1n30, group2sd1n50, group2sd1n100)
-group3sd1 <- bind_rows(group3sd1n20, group3sd1n30, group3sd1n50, group3sd1n100)
-
-rm(group3sd1n20, group3sd1n30, group3sd1n50, group3sd1n100)
-
-group3sd1$group <- 3
-group3sd1$sd <- 1
-
+group2sd1$sd = 1
+rm(group2sd0.5n20, group2sd0.5n30, group2sd0.5n50, group2sd0.5n100, group2sd1n20, group2sd1n30, group2sd1n50, group2sd1n100)
 group2 <- bind_rows(group2sd0.5, group2sd1)
-group2$group <- 2
+group2$group = 2
+
+##3 GROUP DF
+
+group3sd0.5 <- bind_rows(group3sd0.5n20, group3sd0.5n30, group3sd0.5n50, group3sd0.5n100)
+group3sd0.5$sd = 0.5
+group3sd1 <- bind_rows(group3sd1n20, group3sd1n30, group3sd1n50, group3sd1n100)
+group3sd1$sd = 1
+rm(group3sd0.5n20, group3sd0.5n30, group3sd0.5n50, group3sd0.5n100, group3sd1n20, group3sd1n30, group3sd1n50, group3sd1n100)
 
 group3 <- bind_rows(group3sd0.5, group3sd1)
-group3$group <- 3
+group3$group = 3
 
-combined <- bind_rows(group2sd0.5, group2sd1, group3sd0.5,group3sd1)
+combined <- bind_rows(group2, group3)
 
-combined <- combined %>% rename(type = test)
-save(combined, file = "glmerresults.rda")
+conv <- df %>% filter(freqConv == 0)
+
+save(combined, file = "glmerresultsFINAL.rda")
 ```
-
 
 #tests 
 ```{r}
 alpha <- 0.05 #set threshold for significance 
 #pvalues
 combined <- combined %>% 
-  mutate(psig = if_else(pval < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
+  mutate(psig = if_else(pval < alpha, "sig", "nonsig"), 
+         psig_df = if_else(pval_df < alpha, "sig", "nonsig")) #p<.05 --> rej null TRUE, do not rej FALSE
 
 #bayes factors 
-combined <- combined %>% mutate(bf_prop = if_else(exp(bf) > 3, "null", "no"))
+combined <- combined %>% 
+  mutate(bf_comb = if_else(exp(bf) < 1/3, "alt", if_else(exp(bf) > 3, "null", "no")))
 
-#loo & waic 
-combined <- combined %>% mutate(
-  loo_results = if_else(abs(loo_diff) > abs(2*loo_se),"yes", "no"),
-  waic_results = if_else(abs(waic_diff) > abs(2*waic_se), "yes", "no")
-) %>% 
-  rename(samplesize = n)
+combined <- combined %>% rename(type = test, samplesize = n)
 
-rm(glmerresults_2groups, glmerresults_3groups, group2sd0.5, group2sd1, group3sd0.5, group3sd1)
-save(combined, file = "glmerresults.rda")
+save(combined, file = "glmerresultsFINAL.rda")
 ```
 
 #run from here for results 
 ```{r}
-load("glmer_2groupresults.rda")
-load("glmer_3groupresults.rda")
+load("glmerresults_2group.rda")
+load("glmerresults_3group.rda")
+load("glmerresults.rda")
+load("glmerresultsFINAL.rda")
+```
+
+#convergence checks
+```{r}
+combined1 <- combined 
+freq <- combined %>% filter(type == "freq") %>% 
+  group_by(samplesize, type, sd) %>% count(freqConv)
+
+exclConv <- combined %>% filter(freqConv == 0)
+```
+
+# df = n- ngroups 
+```{r}
+newdf <- exclConv %>% 
+  mutate(df_ngroups = pf(joint_tests.F.ratio, df1 = joint_tests.df1, df2 = (samplesize*2 - group), lower.tail = FALSE))
+
+newdf <- newdf %>%
+  mutate(psig_ngroups = if_else(df_ngroups < .05, "sig", "nonsig")) 
 ```
 
 #plot of raw results 
 ```{r}
 #wald p value 
-combined$type_f = factor(combined$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_widerprior'))
-combined <- combined %>% mutate(samplesize = paste0("n = ", samplesize), 
-                                   type_f = recode(type_f, "freq" = "Frequentist", 
+exclConv$type_f = factor(exclConv$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_widerprior'))
+exclConv <- exclConv %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
                                                    "bayes_flatprior" = "Flat Prior",
                                                    "bayes_widerprior" = "Student Wider Prior", 
-                                                   "bayes_tighterprior" = "Student Tighter Prior") )
-combined$samplesize = factor(combined$samplesize, levels=c('n = 20','n = 30','n = 50','n = 100'))
+                                                   "bayes_tighterprior" = "Student Tighter Prior"))
+exclConv$samplesize = factor(exclConv$samplesize, levels=c('20','30','50','100'))
+
+newdf$type_f = factor(newdf$type, levels=c('freq','bayes_flatprior','bayes_tighterprior', 'bayes_widerprior'))
+newdf <- newdf %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
+                                                   "bayes_flatprior" = "Flat Prior",
+                                                   "bayes_widerprior" = "Student Wider Prior", 
+                                                   "bayes_tighterprior" = "Student Tighter Prior"))
+newdf$samplesize = factor(newdf$samplesize, levels=c('20','30','50','100'))
+
+
+#count number of iterations after excluding non-convergence 
+countConv <- exclConv %>% 
+  group_by(samplesize, type_f, sd, group) %>% 
+  summarise(n_iter = n())
 ```
+
+#CIS
+```{r}
+wald <- exclConv %>%
+  group_by(samplesize, type_f, sd, group) %>% 
+  count(psig) %>% 
+  pivot_wider(names_from = "psig", values_from = "n") %>% 
+  rename(x = sig, 
+         non = nonsig) 
+wald$x[is.na(wald$x)] <- 0
+wald <- wald %>% inner_join(countConv, by = c("samplesize", "type_f", "sd", "group"))
+
+
+wald_df <- exclConv %>%
+  group_by(samplesize, type_f, sd, group) %>%            
+  count(psig_df) %>% 
+  pivot_wider(names_from = "psig_df", values_from = "n") %>% 
+  rename(x = sig, 
+         non = nonsig) 
+wald_df$x[is.na(wald_df$x)] <- 0
+wald_df <- wald_df %>% inner_join(countConv, by = c("samplesize", "type_f", "sd", "group"))
+
+wald_newdf <- newdf %>%
+  group_by(samplesize, type_f, sd, group) %>% 
+  count(psig_ngroups) %>% 
+  pivot_wider(names_from = "psig_ngroups", values_from = "n") %>% 
+  rename(x = sig, 
+         non = nonsig) 
+wald_newdf$x[is.na(wald_newdf$x)] <- 0
+wald_newdf <- wald_newdf %>% inner_join(countConv, by = c("samplesize", "type_f", "sd", "group"))
+```
+
+#confidence intervals
+```{r}
+wald_ci <- binom.bayes(wald$x, wald$n_iter, conf.level = 0.95)
+wald_complete <- inner_join(wald, wald_ci, by = "x")
+wald_complete$test <- "pval"
+
+
+waldDF_ci <- binom.bayes(wald_df$x, wald_df$n_iter, conf.level = 0.95)
+waldDF_complete <- inner_join(wald_df, waldDF_ci, by = "x")
+waldDF_complete$test <- "pval"
+
+wald_newdf_ci <- binom.bayes(wald_newdf$x, wald_newdf$n_iter, conf.level = 0.95)
+wald_newdf_complete <- inner_join(wald_newdf, wald_newdf_ci, by = "x")
+wald_newdf_complete$test <- "pval"
+
+wald_complete$sd_f = wald_complete$sd 
+wald_complete <- wald_complete %>% mutate(sd_f = recode(sd_f, "0.5" = "SD = 0.5", "1" = "SD = 1"))
+waldDF_complete$sd_f = waldDF_complete$sd 
+waldDF_complete <- waldDF_complete %>% mutate(sd_f = recode(sd_f, "0.5" = "SD = 0.5", "1" = "SD = 1"))
+wald_newdf_complete$sd_f = wald_newdf_complete$sd 
+wald_newdf_complete <- wald_newdf_complete %>% mutate(sd_f = recode(sd_f, "0.5" = "SD = 0.5", "1" = "SD = 1"))
+```
+
+
+#make one big plot of cis 
+
+```{r}
+ggplot(wald_complete, aes(x = as.factor(samplesize), y = wald_complete$mean, group = as.factor(sd))) + 
+  geom_point(size = .2) + 
+  facet_grid(group ~ type_f) + 
+  geom_line(aes(colour = as.factor(sd))) + 
+  geom_errorbar(aes(ymin = wald_complete$lower, ymax = wald_complete$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Rate of Significance") +
+  scale_y_continuous(limits = c(0, 0.5)) + 
+  xlab("Sample Size") + 
+  labs(title = "glmer pval CI ") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        legend.position = c(0.1, 0.85), 
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "white", colour = "black"),
+        plot.title = element_text(size = 9)) + 
+  guides(color=guide_legend(title="SD")) 
+
+ggsave("glmer_pval_CI.png")
+
+
+ggplot(waldDF_complete, aes(x = as.factor(samplesize), y = waldDF_complete$mean, group = as.factor(sd_f))) + 
+  geom_point(size = .2) + 
+  facet_grid(group ~ type_f) + 
+  geom_line(aes(colour = as.factor(sd_f))) + 
+  geom_errorbar(aes(ymin = waldDF_complete$lower, ymax = waldDF_complete$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Rate of Significance") +
+  scale_y_continuous(limits = c(0, 0.5)) + 
+  xlab("Sample Size") + 
+  labs(title = "glmer pval CI DF") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        legend.position = c(0.9, 0.85), 
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "white", colour = "black"),
+        plot.title = element_text(size = 9)) + 
+  guides(color=guide_legend(title="SD")) 
+ggsave("glmer_pval_CI_DF.png")
+
+
+ggplot(wald_newdf_complete, aes(x = as.factor(samplesize), y = wald_newdf_complete$mean, group = as.factor(sd_f))) + 
+  geom_point(size = .2) + 
+  facet_grid(group ~ type_f) + 
+  geom_line(aes(colour = as.factor(sd_f))) + 
+  geom_errorbar(aes(ymin = wald_newdf_complete$lower, ymax = wald_newdf_complete$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Rate of Significance") +
+  scale_y_continuous(limits = c(0, 0.5)) + 
+  xlab("Sample Size") + 
+  labs(title = "glmer pval CI DF ngroup") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        legend.position = c(0.9, 0.85), 
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "white", colour = "black"),
+        plot.title = element_text(size = 9)) + 
+  guides(color=guide_legend(title="SD")) 
+ggsave("glmer_pval_CI_DFNGROUP.png")
+
+```
+## POSTER PLOTS
+
+```{r}
+ggplot(wald_complete, aes(x = samplesize, y = wald_complete$mean, group = type_f, colour = type_f)) + 
+  geom_line(size = 1.5) + 
+  geom_point(size = .2) + 
+  geom_errorbar(aes(ymin = wald_complete$lower, ymax = wald_complete$upper), width = 0.01, size = 1.5) + 
+  facet_grid(sd_f ~ group) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Type I Error Rate") +
+  scale_y_continuous(limits = c(0, 0.15)) + 
+  xlab("Sample Size") + 
+  labs(title = "glmer pval CI ", colour = "Model type") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.text = element_text(size = 15),
+        axis.title = element_text(face="bold", size = 15),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        plot.title = element_text(size = 9), 
+        legend.position = c(0.858, 0.4),
+        legend.text = element_text(size = 10),
+        strip.text = element_text(size = 14)) 
+ggsave("glmer_pval_CI_poster.png")
+
+ggplot(wald_newdf_complete, aes(x = as.factor(samplesize), y = wald_newdf_complete$mean, group = type_f, colour = type_f))  + 
+  geom_line(size = 1.5) + 
+  geom_point(size = .2) + 
+  geom_errorbar(aes(ymin = wald_newdf_complete$lower, ymax = wald_newdf_complete$upper), width = 0.01, , size = 1.5) + 
+  facet_grid(sd_f ~ group) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+   ylab("Type I Error Rate") +
+  scale_y_continuous(limits = c(0, 0.15)) + 
+   xlab("Sample Size") + 
+  labs(title = "glmer pval df CI ", colour = "Model type") + 
+  theme_bw() +      
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        legend.position = c(0.858, 0.4), 
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "white", colour = "black"),
+        plot.title = element_text(size = 9)) + 
+  guides(color=guide_legend(title="SD")) 
+ggsave("glmer_pval_CI_DFNGROUP.png")
+```
+
+#check nominality 
+```{r}
+#group by type, then check if lower < .05 and upper > .05 -->1 
+pval <- wald_complete %>% group_by(type_f, samplesize, group, sd) %>% 
+  summarise(nominal = if_else(lower <= .05 & upper >= .05, 1, 0),
+            aboveNominal = if_else(lower >= .05 & upper >= .05, 1, 0),
+            belowNominal = if_else(lower <= .05 & upper <= .05, 1, 0))
+pval$rate <- wald_complete$mean
+
+pval_df <- waldDF_complete %>% group_by(type_f, samplesize, group, sd) %>% 
+  summarise(nominal = if_else(lower <= .05 & upper >= .05, 1, 0),
+            aboveNominal = if_else(lower >= .05 & upper >= .05, 1, 0),
+            belowNominal = if_else(lower <= .05 & upper <= .05, 1, 0))
+pval_df$rate <- waldDF_complete$mean
+
+pval_newdf <- wald_newdf_complete %>% group_by(type_f, samplesize, group, sd) %>% 
+  summarise(nominal = if_else(lower <= .05 & upper >= .05, 1, 0),
+            aboveNominal = if_else(lower >= .05 & upper >= .05, 1, 0),
+            belowNominal = if_else(lower <= .05 & upper <= .05, 1, 0))
+pval_newdf$rate <- wald_newdf_complete$mean
+
+```
+
+
+```{r}
+data <- exclConv %>% filter(type != "freq" & type != "bayes_flatprior") %>% 
+  group_by(group, samplesize, type_f, sd) %>%
+  count(bf_comb) %>% 
+  pivot_wider(names_from = bf_comb, values_from = n)
+
+data$null[is.na(data$null)] <- 0
+
+data <- data %>% 
+  pivot_longer(cols = alt:null, names_to = "bf_comb", values_to = "n") 
+
+data <- data %>%
+  mutate(percentage = n / sum(n))
+data <- data %>% 
+  mutate(bf_comb = recode(bf_comb, "alt" = "Evidence for the Alternative", "no" = "Ambiguous Evidence", "null" = "Evidence for the Null"))
+
+data <- data %>% mutate(fake_ss = samplesize) %>% 
+  mutate(fake_ss = dplyr::recode(fake_ss,"20" = 20, "30" = 30, "50" = 40, "100" = 50, "1000" = 60))
+
+data$bf_comb = factor(data$bf_comb, levels=c("Evidence for the Null", "Ambiguous Evidence","Evidence for the Alternative"))
+data$group_f = data$group 
+data <- data %>% mutate(group_f = recode(group_f, "2" = "2 group", "3" = "3 group"))
+data$sd_f = data$sd 
+data <- data %>% mutate(sd_f = recode(sd_f, "0.5" = "SD = 0.5", "1" = "SD = 1"))
+
+
+ggplot(data, aes(x = fake_ss, y = percentage, fill = bf_comb)) + 
+  geom_area(colour = "black", alpha = 0.6) + facet_grid(group_f ~ sd_f + type_f) + 
+  theme_bw() + 
+  ylab("Proportion of Bayes Factors")  + 
+  xlab("Sample Size") + 
+  labs(title = "glmer bf") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        plot.title = element_text(size = 9), 
+        legend.key.size = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.3, 'cm'), #change legend key height
+        legend.key.width = unit(0.3, 'cm'), #change legend key width
+        legend.text = element_text(size=7), 
+        legend.position = c(0.87, 0.35)) + #change legend text font size 
+  scale_x_continuous( labels = c(20, 30, 50, 100)) + 
+  guides(fill = guide_legend(title = NULL)) + scale_fill_manual(values = c("#E69F00", "#56B4E9", 
+    "#CC79A7"))
+
+ggsave("glmer_bf.png", width = x, height = 5)
+
+7.32/4.52
+x = 1.61947 *(6)
+```
+
+
+##OLD 
+
+#BF
+```{r}
+data <- exclConv %>% filter(type != "freq" & type != "bayes_flatprior") %>% 
+  group_by(group, samplesize, type, sd) %>%
+  count(bf_comb) %>%
+  mutate(percentage = n / sum(n))
+data <- data %>% mutate(bf_comb = recode(bf_comb, "alt" = "Evidence for the Alternative", "no" = "Ambiguous Evidence", "null" = "Evidence for the Null"))
+
+group2NULL <- data %>% filter(group == 2, samplesize < 1000) %>% 
+  filter(samplesize != 100 | type_f != "bayes_widerprior") %>% 
+  filter(bf_comb == "Evidence for the Alternative") %>% 
+  mutate(bf_comb = "Evidence for the Null", n = 0, percentage = 0)
+data <- rbind(data, group2NULL)
+group3NULL <- data %>% filter(group == 3) %>% 
+  filter(samplesize <= 50, type_f == "bayes_tighterprior") %>% 
+  filter(bf_comb == "Evidence for the Alternative") %>% 
+  mutate(bf_comb = "Evidence for the Null", n = 0, percentage = 0)
+data <- rbind(data, group3NULL)
+
+
+data$bf_comb = factor(data$bf_comb, levels=c("Evidence for the Null", "Ambiguous Evidence", "Evidence for the Alternative"))
+data$group_f = data$group 
+data <- data %>% mutate(group_f = recode(group_f, "2" = "2 group", "3" = "3 group"))
+data$type_r = data$type 
+data <- data %>% mutate(type_r = recode(type_r,  "bayes_widerprior" = "Student Wider Prior", "bayes_tighterprior" = "Student Tighter Prior"))
+data = data %>% mutate(fake_ss = recode(samplesize, "20" = 1, "30" = 2, "50" = 3, "100" = 4))
+
+ggplot(data, aes(x = fake_ss, y = percentage, fill = bf_comb)) + 
+   geom_area(colour = "black", alpha = 0.6) + facet_grid(group_f ~ type_r) + 
+  theme_bw() + 
+  ylab("Proportion of Bayes Factors")  + 
+  xlab("Sample Size") + 
+  labs(title = "glmer bf") +   
+  theme(axis.line.y = element_blank(), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        plot.title = element_text(size = 9), 
+        legend.key.size = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.3, 'cm'), #change legend key height
+        legend.key.width = unit(0.3, 'cm'), #change legend key width
+        legend.text = element_text(size=7), 
+        legend.position = c(0.855, 0.15)) + #change legend text font size 
+  scale_x_continuous(breaks = c(20, 30, 40, 50, 60), labels = c(20, 30, 50, 100, 1000)) + 
+  guides(fill = guide_legend(title = NULL))
+
+ggsave("glmer_bf.png")
+```
+
+
 
 #PVALUES 
 ```{r}
@@ -169,7 +529,7 @@ ggplot(plot_bf3_sd0.5, aes(x = bf))  +
   labs(title = "glmer 3 group bf sd 0.5")
 ggsave("glmer_3group0.5SD_bfRAW.png", width = 30, height = 20, units = "cm")
 
-ggplot(plot_bf3_sd1, aes(x = bf))  + 
+ggplot(plot_bf3_sd1, aes(x = bf)) + 
   geom_histogram(aes(y = after_stat(density)), binwidth = .05, boundary = 0) + 
   facet_grid(type_f ~ samplesize, labeller = labeller(type_f = label_wrap_gen(10)))  + 
   geom_vline(xintercept = 0, colour = "blue", linetype = 2)  + 
@@ -179,97 +539,6 @@ ggplot(plot_bf3_sd1, aes(x = bf))  +
 ggsave("glmer_3group1SD_bfRAW.png", width = 30, height = 20, units = "cm")
 ```
 
-#CIS
-```{r}
-iter = 1000
-wald <- combined %>%
-  group_by(group, samplesize, type, sd) %>% 
-  count(psig) %>% 
-  pivot_wider(names_from = "psig", values_from = "n") %>% 
-  rename(x = sig, 
-         non = nonsig) 
-wald$x[is.na(wald$x)] <- 0
-
-bf<- combined %>% 
-  group_by(group, samplesize, type, sd) %>% 
-  count(bf_prop) %>% 
-  filter(type != "freq") %>% 
-  pivot_wider(names_from = "bf_prop", values_from = "n") %>% 
-  rename(x = null, 
-         non = no)
-bf$x[is.na(bf$x)] <- 0
-```
-
-#confidence intervals
-```{r}
-#each sd 64000/2 = 32000
-#each simulation 2 groups - 32000/2 = 16000
-#each group 16000/4 = 
-
-wald$ci <- binom.bayes(wald$x, 1000, conf.level = 0.95, tol = 1e-9)
-wald$test <- "pval"
-
-bf$ci <- binom.bayes(bf$x, 1000, conf.level = 0.95, tol = 1e-9)
-bf$test <- "bf"
-
-```
 
 
-#make one big plot of cis 
-##2group 
-```{r}
-ci <- bind_rows(wald, bf)
 
-#wald p value 
-ci <- ci %>% filter(type != "bayes_flatprior"|test != "bf")
-
-ci$type_f = factor(ci$type, levels=c('freq','bayes_flatprior','bayes_tighterprior','bayes_studentprior', "bayes_widerprior"))
-ci <- ci %>% mutate(type_f = recode(type_f, "freq" = "Frequentist", 
-                                                      "bayes_flatprior" = "Flat Prior",
-                                                      "bayes_widerprior" = "Student Wider Prior", 
-                                                      "bayes_tighterprior" = "Student Tighter Prior"), 
-                      test = recode(test, "pval" = "p-values", "bf" = "Bayes Factors")) 
-```
-
-```{r}
-ci_pval <- ci %>% filter(test == "p-values")
-ci0.5 <- ci_pval %>% filter(sd == 0.5)
-  
-ggplot(ci_pval, aes(x = as.factor(samplesize), y = ci$mean, group = as.factor(sd))) + 
-  geom_point(size = .2) + 
-  facet_grid(group ~ type_f) + 
-  geom_line(aes(colour = as.factor(sd))) + 
-  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, colour = "blue") + 
-  facet_grid(group ~ type_f) + 
-  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
-  ylab("Rate of Significance") +
-  scale_y_continuous(limits = c(0, 1)) + 
-  xlab("Sample Size") + 
-  labs(title = "glmer pval CI ")
-
-ggsave("glmer_pval_CI.png")
-
-ci_bf <- ci %>% filter(test == "Bayes Factors")
-
-ggplot(ci_bf, aes(x = as.factor(samplesize), y = ci$mean, group = as.factor(sd))) + 
-  geom_point(size = .2) + 
-  facet_grid(group ~ type_f) + 
-  geom_line(aes(colour = as.factor(sd))) +  
-  geom_errorbar(aes(ymin = ci$lower, ymax = ci$upper), width = 0.01, colour = "blue") +
-  ylab("Rate of BF > 3 for the null") +
-  xlab("Sample Size")+ 
-  labs(title = "glmer bf CI ")
-
-ggsave("glmer_bf_CI.png")
-```
-
-
-#check nominality 
-```{r}
-pval <- ci %>% filter(test == "p-values") %>% group_by(type_f, samplesize, group, sd) %>% 
-  summarise(nominal = if_else(ci$lower <= .05 & ci$upper >= .05, 1, 0),
-            aboveNominal = if_else(ci$lower >= .05 & ci$upper >= .05, 1, 0),
-            belowNominal = if_else(ci$lower <= .05 & ci$upper <= .05, 1, 0))
-pval$rate <- ci_pval$ci$mean
-#group by type, then check if lower < .05 and upper > .05 -->1 
-```

@@ -1,0 +1,26 @@
+```{r}
+sample_size = 30
+mod_iter = 11000
+mod_warmup = 1000
+#first fit models
+data <- data.frame(x = rep(c("control", "treatmentA"), each = sample_size), 
+                   y = c(rnorm(n = sample_size), 
+                             rnorm(n = sample_size)))
+```
+
+
+
+```{r}
+library(brms) #load libraries 
+options(contrasts=c('contr.equalprior_deviations', 'contr.poly')) #set contrast coding 
+bayesian_model <- brm(formula = y ~ x, 
+                      data = data) #fit model
+summary(bayesian_model) #view model
+```
+
+
+```{r}
+library(emmeans)
+bayesian_frequentist <- joint_tests(bayesian_model) #derive p values
+bayesian_frequentist #view wald test 
+```

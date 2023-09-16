@@ -1,0 +1,75 @@
+---
+title: "plotting"
+output: html_document
+---
+
+```{r}
+#linear model 
+final_twogroups$group = 2
+final_threegroups$group = 3
+lm <- bind_rows(final_threegroups, final_twogroups)
+lm$regression = "lm"
+lm$psig = lm$wald_significance
+lm <- lm %>% select(id, regression, samplesize, type, pval, psig, group)
+
+group2GLM$group = 2
+group3GLM$group = 3
+glm <- bind_rows(group2GLM, group3GLM)
+glm$regression = "glm"
+glm <- glm %>% select(id, regression, samplesize, type, pval, psig, group)
+
+both <- bind_rows(lm, glm)
+```
+
+```{r}
+plot_pval <- both %>% mutate(type_f = recode(type, 
+                                             "freq" = "Frequentist", 
+                                              "bayes_flatprior" = "Flat Prior",
+                                              "bayes_widerprior" = "Wider Prior", 
+                                             "bayes_studentprior" = "Wider Prior", 
+                                              "bayes_tighterprior" = "Tighter Prior", 
+                                             "bayes_oosterwijkprior" = "Oosterwijk Prior"))
+plot_pval$type_f = factor(plot_pval$type_f, levels=c('Frequentist','Flat Prior','Wider Prior', 'Tighter Prior', "Oosterwijk Prior"))
+
+```
+
+```{r}
+iter = 1000
+wald <- plot_pval %>% 
+  group_by(group, samplesize, type_f, regression) %>% 
+  count(psig) %>% 
+  pivot_wider(names_from = "psig", values_from = "n") %>% 
+  rename(x = sig, 
+         non = nonsig) 
+wald$x[is.na(wald$x)] <- 0
+
+wald$ci <- binom.bayes(wald$x, 1000, conf.level = 0.95, tol = 1e-9)
+wald$test <- "pval"
+```
+
+```{r}
+ggplot(wald, aes(x = as.factor(samplesize), y = wald$ci$mean, group = as.factor(regression))) + 
+  geom_point(size = .2) + 
+  facet_grid(group ~ type_f) + 
+  geom_line(aes(colour = as.factor(regression))) + 
+  geom_errorbar(aes(ymin = wald$ci$lower, ymax = wald$ci$upper), width = 0.01, colour = "blue") + 
+  facet_grid(group ~ type_f) + 
+  geom_hline( aes(yintercept = .05), colour = "blue", linetype = "dotted") + 
+  ylab("Rate of Significance") +
+  scale_y_continuous(limits = c(0, 0.6)) + 
+  xlab("Sample Size") + 
+  labs(title = "lm & glmer pval CI ") + 
+  theme_bw() +   
+  theme(axis.line.y = element_blank(), axis.line.x = element_line(size=.1, colour = "grey"), 
+        axis.title = element_text(face="bold"),
+        panel.grid.major.x = element_line(size=.1, colour = "grey"), 
+        panel.grid.major.y = element_line(size=.1, color="grey"),
+        legend.position = c(0.1, 0.85), 
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "white", colour = "black"),
+        plot.title = element_text(size = 9)) + 
+  guides(color=guide_legend(title="SD")) 
+
+ggsave("lm_glm_pval.png")
+```
+
