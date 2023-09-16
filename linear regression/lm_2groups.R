@@ -25,7 +25,7 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   freq <- lm(value ~ group, data)
   
   freq_pval <- summary(freq)$coef[2, 4]
-  
+
   #bayes model - null 
   
   bayes_intercept <- update(bayes_intercept_prefit, 
@@ -87,7 +87,6 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   
   #bayes factors 
   #flat 
-  
   bf_flat_test <- bridgesampling::bayes_factor(bayes_intercept, 
                                                bayes_flatprior, log = TRUE)
   

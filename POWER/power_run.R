@@ -69,7 +69,30 @@ bayes_tighterprior_prefit <- brm(formula = value ~ group,
                                  iter = mod_iter, warmup = mod_warmup,
                                  chains = 4, cores = 1)
 
-powerSim(iter = 10, sample_size = 20, eff_size = 0.2,
-                 mod_iter = 1100, mod_warmup = 1000, cores = 6) 
-powerSim(iter = 10, sample_size = 20, eff_size = 0.2,
+powerSim(iter = 1000, sample_size = 20, eff_size = 0.2,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+powerSim(iter = 1000, sample_size = 20, eff_size = 0.5,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+powerSim(iter = 1000, sample_size = 20, eff_size = 0.8,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+
+powerSim(iter = 1000, sample_size = 30, eff_size = 0.2,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+powerSim(iter = 1000, sample_size = 30, eff_size = 0.5,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+powerSim(iter = 1000, sample_size = 30, eff_size = 0.8,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+
+powerSim(iter = 1000, sample_size = 50, eff_size = 0.2,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+powerSim(iter = 1000, sample_size = 50, eff_size = 0.5,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+powerSim(iter = 1000, sample_size = 50, eff_size = 0.8,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+
+powerSim(iter = 1000, sample_size = 100, eff_size = 0.2,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+powerSim(iter = 1000, sample_size = 100, eff_size = 0.5,
+         mod_iter = 1100, mod_warmup = 1000, cores = 6) 
+powerSim(iter = 1000, sample_size = 100, eff_size = 0.8,
          mod_iter = 1100, mod_warmup = 1000, cores = 6) 

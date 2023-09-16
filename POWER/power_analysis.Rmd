@@ -4,6 +4,22 @@ output: html_document
 ---
 
 ```{r}
+library(tidyverse)
 d.2_n20 <- bind_rows(powerResults, .id = "id")
+d.5_n20 <- bind_rows(powerResults, .id = "id")
+d.8_n20 <- bind_rows(powerResults, .id = "id")
+
+d.2_n30 <- bind_rows(powerResults, .id = "id")
+d.5_n30 <- bind_rows(powerResults, .id = "id")
+d.8_n30 <- bind_rows(powerResults, .id = "id")
+
+d.2_n50 <- bind_rows(powerResults, .id = "id")
+d.5_n50 <- bind_rows(powerResults, .id = "id")
+d.8_n50 <- bind_rows(powerResults, .id = "id")
+
+d.2_n100 <- bind_rows(powerResults, .id = "id")
+d.5_n100 <- bind_rows(powerResults, .id = "id")
+d.8_n100 <- bind_rows(powerResults, .id = "id")
+
 
 ```
