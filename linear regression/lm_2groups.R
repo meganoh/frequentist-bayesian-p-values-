@@ -40,50 +40,28 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   
   bayes_flat_pval <- bayes_flat_test$p.value
   
-  #bayes model - student prior 
-  bayes_studentprior <- update(bayes_studentprior_prefit, 
+  #bayes model - wide prior 
+  bayes_wideprior <- update(bayes_wideprior_prefit, 
                                newdata = data, recompile = FALSE)
   
+  bayes_wide_test <- joint_tests(bayes_wideprior)
   
-  bayes_student_test <- joint_tests(bayes_studentprior)
+  bayes_wide_pval <- bayes_wide_test$p.value
   
   
-  bayes_student_pval <- bayes_student_test$p.value
+  #bayes model - tight prior 
+  bayes_tightprior <- update(bayes_tightprior_prefit, 
+                            newdata = data, recompile = FALSE)
+  
+  bayes_tight_test <- joint_tests(bayes_tightprior)
+  
+  bayes_tight_pval <- bayes_tight_test$p.value
   
   #bayes model - oosterwijk prior 
   bayes_oosterwijkprior <- update(bayes_oosterwijkprior_prefit, 
                                   newdata = data, recompile = FALSE)
   bayes_oosterwijk_test <- joint_tests(bayes_oosterwijkprior)
   bayes_oosterwijk_pval <- bayes_oosterwijk_test$p.value
-  
-  #LOO & WAIC comparison
-  #flat
-  loo_flat <- LOO(bayes_flatprior, bayes_intercept)
-  loo_elpd_diff_flat <- loo_flat$diffs[2]
-  loo_se_diff_flat <- loo_flat$diffs[4]
-  
-  waic_flat <- WAIC(bayes_flatprior, bayes_intercept)
-  waic_elpd_diff_flat <- waic_flat$diffs[2]
-  waic_se_diff_flat <- waic_flat$diffs[4]
-  
-  #student
-  loo_student <- LOO(bayes_studentprior, bayes_intercept)
-  loo_elpd_diff_student <- loo_student$diffs[2]
-  loo_se_diff_student <- loo_student$diffs[4]
-  
-  waic_student <- WAIC(bayes_studentprior, bayes_intercept)
-  waic_elpd_diff_student <- waic_student$diffs[2]
-  waic_se_diff_student <- waic_student$diffs[4]
-  
-  #oosterwijk
-  loo_oosterwijk <- LOO(bayes_oosterwijkprior, bayes_intercept)
-  loo_elpd_diff_oosterwijk <- loo_oosterwijk$diffs[2]
-  loo_se_diff_oosterwijk <- loo_oosterwijk$diffs[4]
-  
-  waic_oosterwijk <- WAIC(bayes_oosterwijkprior, bayes_intercept)
-  waic_elpd_diff_oosterwijk <- waic_oosterwijk$diffs[2]
-  waic_se_diff_oosterwijk <- waic_oosterwijk$diffs[4]
-  
   
   #bayes factors 
   #flat 
@@ -93,14 +71,15 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   
   bf_flat <- bf_flat_test$bf
   
-  #student
+  #wider prior 
+  bf_wide_test <- bridgesampling::bayes_factor(bayes_intercept, 
+                                                bayes_wideprior, log = TRUE)
+  bf_wide <- bf_wide_test$bf
   
-  
-  bf_student_test <- bridgesampling::bayes_factor(bayes_intercept, 
-                                                  bayes_studentprior, log = TRUE)
-  
-  
-  bf_student <- bf_student_test$bf
+  #tighter prior 
+  bf_tight_test <- bridgesampling::bayes_factor(bayes_intercept, 
+                                                bayes_tightprior, log = TRUE)
+  bf_tight <- bf_tight_test$bf
   
   #oosterwijk
   bf_oosterwijk_test <- bridgesampling::bayes_factor(bayes_intercept, 
@@ -122,21 +101,37 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   p_flat <- pchisq(diff_flat, df = 1, lower.tail = FALSE)
   p_flat_max <- pchisq(diff_flat_max, df = 1, lower.tail = FALSE)
   
-  #student
-  student <- as.data.frame(bayes_studentprior$fit)
-  student <- student %>% 
+  #wide
+  wide <- as.data.frame(bayes_wideprior$fit)
+  wide <- wide %>% 
     mutate(
-      lp_student_new = student$lp__ - 
-        dlst(x = student$b_group1, df = 3, sigma = 0.5, mu = 0, log = TRUE) 
+      lp_wide_new = wide$lp__ - 
+        dlst(x = wide$b_group1, df = 3, sigma = 0.5, mu = 0, log = TRUE) 
     )
-  lp_student <- mean(student$lp_student_new)
-  lp_student_max <- max(student$lp_student_new)
+  lp_wide <- mean(wide$lp_wide_new)
+  lp_wide_max <- max(wide$lp_wide_new)
   
-  diff_student <- lp_student - lp_null
-  diff_student_max <- lp_student_max - lp_null_max
+  diff_wide <- lp_wide - lp_null
+  diff_wide_max <- lp_wide_max - lp_null_max
   
-  p_student <- pchisq(diff_student, df = 1, lower.tail = FALSE)
-  p_student_max <-pchisq(diff_student_max, df = 1, lower.tail = FALSE)
+  p_wide <- pchisq(diff_wide, df = 1, lower.tail = FALSE)
+  p_wide_max <-pchisq(diff_wide_max, df = 1, lower.tail = FALSE)
+  
+  #tight
+  tight <- as.data.frame(bayes_tightprior$fit)
+  tight <- tight %>% 
+    mutate(
+      lp_tight_new = tight$lp__ - 
+        dlst(x = tight$b_group1, df = 3, sigma = 0.5, mu = 0, log = TRUE) 
+    )
+  lp_tight <- mean(tight$lp_tight_new)
+  lp_tight_max <- max(tight$lp_tight_new)
+  
+  diff_tight <- lp_tight - lp_null
+  diff_tight_max <- lp_tight_max - lp_null_max
+  
+  p_tight <- pchisq(diff_tight, df = 1, lower.tail = FALSE)
+  p_tight_max <-pchisq(diff_tight_max, df = 1, lower.tail = FALSE)
   
   #oosterwijk
   oosterwijk <- as.data.frame(bayes_oosterwijkprior$fit)
@@ -159,32 +154,27 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   
   out_flatbayes <- data.frame(n = sample_size, diff, se, 
                               test = "bayes_flatprior", pval = bayes_flat_pval, 
-                              loo_diff = loo_elpd_diff_flat, 
-                              loo_se = loo_se_diff_flat,
-                              waic_diff = waic_elpd_diff_flat,
-                              waic_se = waic_se_diff_flat,
                               bf = bf_flat,
                               lp_diff = diff_flat,
                               lp_diff_max = diff_flat_max,
                               p_likelihood = p_flat,
                               p_likelihood_max = p_flat_max)
-  out_studentbayes <- data.frame(n = sample_size, diff, se, 
-                                 test = "bayes_studentprior", pval = bayes_student_pval, 
-                                 loo_diff = loo_elpd_diff_student, 
-                                 loo_se = loo_se_diff_student,
-                                 waic_diff = waic_elpd_diff_student,
-                                 waic_se = waic_se_diff_student,
-                                 bf = bf_student,
-                                 lp_diff = diff_student,
-                                 lp_diff_max = diff_student_max,
-                                 p_likelihood = p_student,
-                                 p_likelihood_max = p_student_max)
+  out_widebayes <- data.frame(n = sample_size, diff, se, 
+                                 test = "bayes_wideprior", pval = bayes_wide_pval, 
+                                 bf = bf_wide,
+                                 lp_diff = diff_wide,
+                                 lp_diff_max = diff_wide_max,
+                                 p_likelihood = p_wide,
+                                 p_likelihood_max = p_wide_max)
+  out_tightbayes <- data.frame(n = sample_size, diff, se, 
+                              test = "bayes_tightprior", pval = bayes_tight_pval, 
+                              bf = bf_tight,
+                              lp_diff = diff_tight,
+                              lp_diff_max = diff_tight_max,
+                              p_likelihood = p_tight,
+                              p_likelihood_max = p_tight_max)
   out_oosterwijkbayes <- data.frame(n = sample_size, diff, se, 
                                     test = "bayes_oosterwijkprior", pval = bayes_oosterwijk_pval,
-                                    loo_diff = loo_elpd_diff_oosterwijk, 
-                                    loo_se = loo_se_diff_oosterwijk,
-                                    waic_diff = waic_elpd_diff_oosterwijk,
-                                    waic_se = waic_se_diff_oosterwijk,
                                     bf = bf_oosterwijk,
                                     lp_diff = diff_oosterwijk,
                                     lp_diff_max = diff_oosterwijk_max,
@@ -192,7 +182,8 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
                                     p_likelihood_max = p_oosterwijk_max) 
   out <- bind_rows(out_freq,
                    out_flatbayes, 
-                   out_studentbayes, 
+                   out_widebayes, 
+                   out_tightbayes, 
                    out_oosterwijkbayes)
   return(out)
 }
@@ -200,6 +191,6 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
 run_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
   results_2groups <- mclapply(X = 1:iter, 
                               FUN = fit_2groups, sample_size, mod_iter, mod_warmup, 
-                              mc.cores = 16, mc.preschedule = FALSE, mc.cleanup = TRUE)
+                              mc.cores = 1, mc.preschedule = FALSE, mc.cleanup = TRUE)
   save(results_2groups, file = paste0("simulation_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 }

@@ -1,4 +1,4 @@
-setwd("/home/megan/frequentist-bayesian-p-values-/linear regression")
+setwd("C:/Users/megan.oh/OneDrive - National University of Singapore/FBPV/linear regression")
 #set up 
 library(brms)
 library(rstanarm)
@@ -36,19 +36,19 @@ bayes_flatprior_prefit <- brm(formula = value ~ group,
 bayes_flatprior_prefit$model
 
 #bayes model - student prior 
-student_prior <- c(set_prior("student_t(3, 0, 0.5)", class = "b")) 
-bayes_studentprior_prefit <- brm(formula = value ~ group, 
+student_wideprior <- c(set_prior("student_t(3, 0, 0.5)", class = "b")) 
+bayes_wideprior_prefit <- brm(formula = value ~ group, 
                                  data = data, 
-                                 prior = student_prior, 
+                                 prior = student_wideprior, 
                                  save_pars = save_pars(all = TRUE), 
                                  iter = mod_iter, warmup = mod_warmup,
                                  chains = 4, cores = 1)
 
 #bayes model - student prior 
-student2_prior <- c(set_prior("student_t(3, 0, 0.2)", class = "b")) 
-bayes_studentprior_prefit <- brm(formula = value ~ group, 
+student_tightprior <- c(set_prior("student_t(3, 0, 0.2)", class = "b")) 
+bayes_tightprior_prefit <- brm(formula = value ~ group, 
                                  data = data, 
-                                 prior = student_prior, 
+                                 prior = student_tightprior, 
                                  save_pars = save_pars(all = TRUE), 
                                  iter = mod_iter, warmup = mod_warmup,
                                  chains = 4, cores = 1)
@@ -67,8 +67,7 @@ bayes_oosterwijkprior_prefit <- brm(formula = value ~ group,
 source("lm_2groups.R")
 source("lm_3groups.R")
 
-run_2groups(iter = 1000, sample_size = 100, 
+run_2groups(iter = 5, sample_size = 100, 
             mod_iter = 11000, mod_warmup = 1000)
-run_3groups(iter = 1000, sample_size = 100, 
+run_3groups(iter = 5, sample_size = 100, 
             mod_iter = 11000, mod_warmup = 1000)
-
