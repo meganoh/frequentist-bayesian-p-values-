@@ -1,4 +1,5 @@
-setwd("C:/Users/megan.oh/OneDrive - National University of Singapore/FBPV/linear regression")
+setwd("~/GitHub/frequentist-bayesian-p-values-/linear regression")
+
 #set up 
 library(brms)
 library(rstanarm)
@@ -67,22 +68,22 @@ bayes_oosterwijkprior_prefit <- brm(formula = value ~ group,
 source("lm_2groups.R")
 source("lm_3groups.R")
 
-run_2groups(iter = 5, sample_size = 20, 
-            mod_iter = 11000, mod_warmup = 1000)
-run_3groups(iter = 5, sample_size = 20, 
-            mod_iter = 11000, mod_warmup = 1000)
+run_2groups(iter = 10000, sample_size = 20, 
+            mod_iter = 11000, mod_warmup = 1000, cores = 1)
+run_3groups(iter = 10000, sample_size = 20, 
+            mod_iter = 11000, mod_warmup = 1000, cores = 1)
 
-run_2groups(iter = 5, sample_size = 30, 
-            mod_iter = 11000, mod_warmup = 1000)
-run_3groups(iter = 5, sample_size = 30, 
-            mod_iter = 11000, mod_warmup = 1000)
+run_2groups(iter = 10000, sample_size = 30, 
+            mod_iter = 11000, mod_warmup = 1000, cores = 1)
+run_3groups(iter = 10000, sample_size = 30, 
+            mod_iter = 11000, mod_warmup = 1000, cores = 1)
 
-run_2groups(iter = 5, sample_size = 50, 
-            mod_iter = 11000, mod_warmup = 1000)
-run_3groups(iter = 5, sample_size = 50, 
-            mod_iter = 11000, mod_warmup = 1000)
+run_2groups(iter = 10000, sample_size = 50, 
+            mod_iter = 11000, mod_warmup = 1000, cores = 1)
+run_3groups(iter = 10000, sample_size = 50, 
+            mod_iter = 11000, mod_warmup = 1000, cores = 1)
 
-run_2groups(iter = 5, sample_size = 100, 
-            mod_iter = 11000, mod_warmup = 1000)
-run_3groups(iter = 5, sample_size = 100, 
-            mod_iter = 11000, mod_warmup = 1000)
+run_2groups(iter = 10000, sample_size = 100, 
+            mod_iter = 11000, mod_warmup = 1000, cores = 1)
+run_3groups(iter = 10000, sample_size = 100, 
+            mod_iter = 11000, mod_warmup = 1000, cores = 1)

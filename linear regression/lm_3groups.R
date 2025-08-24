@@ -170,10 +170,10 @@ fit_3groups <- function(i, sample_size, mod_iter, mod_warmup) {
   return(out)
 }
 
-run_3groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
+run_3groups <-  function(iter, sample_size, mod_iter, mod_warmup, cores) {
   results_3groups <- mclapply(X = 1:iter, 
                               FUN = fit_3groups, sample_size, mod_iter, mod_warmup, 
-                              mc.cores = 1, mc.preschedule = FALSE, mc.cleanup = TRUE)
+                              mc.cores = cores, mc.preschedule = FALSE, mc.cleanup = TRUE)
   save(results_3groups, file = paste0("simulation_3groups", "_n", sample_size, "_iter", iter, ".rda"))
 }
 

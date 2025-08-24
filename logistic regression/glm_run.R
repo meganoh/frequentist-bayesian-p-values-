@@ -1,4 +1,5 @@
-setwd("C:/Users/megan.oh/OneDrive - National University of Singapore/FBPV/logistic regression")
+setwd("~/GitHub/frequentist-bayesian-p-values-/logistic regression")
+
 #set up 
 library(brms)
 library(rstanarm)
@@ -16,7 +17,7 @@ library("extraDistr")
 library(broom)
 
 sample_size = 1000 
-mod_iter = 11000
+mod_iter = 20000
 mod_warmup = 1000
 
 prob <- rbeta(1, 2, 2)
@@ -63,29 +64,27 @@ bayes_widerprior_prefit <- brm(formula = value ~ group,
 source("glm_2groups.R")
 source("glm_3groups.R")
 
-glmrun_2groups(iter = 5, sample_size = 20, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 1)
-glmrun_3groups(iter = 5, sample_size = 20, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 1)
+glmrun_2groups(iter = 10000, sample_size = 20, 
+               mod_iter = 2000, mod_warmup = 1000, cores = 1)
+glmrun_3groups(iter = 10000, sample_size = 20, 
+               mod_iter = 2000, mod_warmup = 1000, cores = 1)
 
-glmrun_2groups(iter = 1, sample_size = 30, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 1)
-glmrun_3groups(iter = 1, sample_size = 30, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 1)
+glmrun_2groups(iter = 10000, sample_size = 30,
+               mod_iter = 2000, mod_warmup = 1000, cores = 1)
+glmrun_3groups(iter = 10000, sample_size = 30,
+               mod_iter = 2000, mod_warmup = 1000, cores = 1)
 
-glmrun_2groups(iter = 1, sample_size = 50, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 1)
-glmrun_3groups(iter = 1, sample_size = 50, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 1)
+glmrun_2groups(iter = 10000, sample_size = 50,
+               mod_iter = 2000, mod_warmup = 1000, cores = 1)
+glmrun_3groups(iter = 10000, sample_size = 50,
+               mod_iter = 2000, mod_warmup = 1000, cores = 1)
 
-glmrun_2groups(iter = 1000, sample_size = 100, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
-glmrun_3groups(iter = 1000, sample_size = 100, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
+glmrun_2groups(iter = 10000, sample_size = 100,
+               mod_iter = 2000, mod_warmup = 1000, cores = 12)
+glmrun_3groups(iter = 10000, sample_size = 100,
+               mod_iter = 2000, mod_warmup = 1000, cores = 12)
 
-glmrun_2groups(iter = 10, sample_size = 1000, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
-glmrun_3groups(iter = 1000, sample_size = 1000, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
-
-re2u <- bind_rows(glmresults_2groups, .id = "id")
+glmrun_2groups(iter = 10000, sample_size = 1000,
+               mod_iter = 2000, mod_warmup = 1000, cores = 12)
+glmrun_3groups(iter = 10000, sample_size = 1000,
+               mod_iter = 2000, mod_warmup = 1000, cores = 12)

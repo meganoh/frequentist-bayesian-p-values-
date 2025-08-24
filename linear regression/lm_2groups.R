@@ -188,9 +188,9 @@ fit_2groups <- function(i, sample_size, mod_iter, mod_warmup) {
   return(out)
 }
 
-run_2groups <-  function(iter, sample_size, mod_iter, mod_warmup) {
+run_2groups <-  function(iter, sample_size, mod_iter, mod_warmup, cores) {
   results_2groups <- mclapply(X = 1:iter, 
                               FUN = fit_2groups, sample_size, mod_iter, mod_warmup, 
-                              mc.cores = 1, mc.preschedule = FALSE, mc.cleanup = TRUE)
+                              mc.cores = cores, mc.preschedule = FALSE, mc.cleanup = TRUE)
   save(results_2groups, file = paste0("simulation_2groups", "_n", sample_size, "_iter", iter, ".rda"))
 }
