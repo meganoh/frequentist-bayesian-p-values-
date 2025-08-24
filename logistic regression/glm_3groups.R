@@ -40,35 +40,6 @@ glm_3groups <- function(i, sample_size, mod_iter, mod_warmup){
   bayes_wider_pval <- bayes_wider_test$p.value
   bayes_wider_pval_df <- pf(bayes_wider_test$F.ratio, bayes_wider_test$df1, df2 = sample_size*2, lower.tail = FALSE)
   
-  #LOO & WAIC comparison
-  #flat
-  loo_flat <- LOO(bayes_flatprior, bayes_intercept)
-  loo_elpd_diff_flat <- loo_flat$diffs[2]
-  loo_se_diff_flat <- loo_flat$diffs[4]
-  
-  waic_flat <- WAIC(bayes_flatprior, bayes_intercept)
-  waic_elpd_diff_flat <- waic_flat$diffs[2]
-  waic_se_diff_flat <- waic_flat$diffs[4]
-  
-  #tighter
-  loo_tighter <- LOO(bayes_tighterprior, bayes_intercept)
-  loo_elpd_diff_tighter <- loo_tighter$diffs[2]
-  loo_se_diff_tighter <- loo_tighter$diffs[4]
-  
-  waic_tighter <- WAIC(bayes_tighterprior, bayes_intercept)
-  waic_elpd_diff_tighter <- waic_tighter$diffs[2]
-  waic_se_diff_tighter <- waic_tighter$diffs[4]
-  
-  #wider
-  loo_wider <- LOO(bayes_widerprior, bayes_intercept)
-  loo_elpd_diff_wider <- loo_wider$diffs[2]
-  loo_se_diff_wider <- loo_wider$diffs[4]
-  
-  waic_wider <- WAIC(bayes_widerprior, bayes_intercept)
-  waic_elpd_diff_wider <- waic_wider$diffs[2]
-  waic_se_diff_wider <- waic_wider$diffs[4]
-  
-  
   #bayes factors 
   #flat 
   bf_flat_test <- bridgesampling::bayes_factor(bayes_intercept, 
@@ -90,26 +61,14 @@ glm_3groups <- function(i, sample_size, mod_iter, mod_warmup){
                          joint_tests = list(freq_test))
   out_flatbayes <- data.frame(n = sample_size, 
                               test = "bayes_flatprior", pval = bayes_flat_pval,  pval_df = bayes_flat_pval_df,
-                              loo_diff = loo_elpd_diff_flat, 
-                              loo_se = loo_se_diff_flat,
-                              waic_diff = waic_elpd_diff_flat,
-                              waic_se = waic_se_diff_flat,
                               bf = bf_flat, 
                               joint_tests = list(bayes_flat_test))
   out_tighterbayes <- data.frame(n = sample_size, 
                                  test = "bayes_tighterprior", pval = bayes_tighter_pval, pval_df = bayes_tighter_pval_df, 
-                                 loo_diff = loo_elpd_diff_tighter, 
-                                 loo_se = loo_se_diff_tighter,
-                                 waic_diff = waic_elpd_diff_tighter,
-                                 waic_se = waic_se_diff_tighter,
                                  bf = bf_tighter, 
                                  joint_tests = list(bayes_tighter_test))
   out_widerbayes <- data.frame(n = sample_size, 
                                test = "bayes_widerprior", pval = bayes_wider_pval, pval_df = bayes_wider_pval_df, 
-                               loo_diff = loo_elpd_diff_wider, 
-                               loo_se = loo_se_diff_wider,
-                               waic_diff = waic_elpd_diff_wider,
-                               waic_se = waic_se_diff_wider,
                                bf = bf_wider, 
                                joint_tests = list(bayes_wider_test))
   out <- bind_rows(out_freq,

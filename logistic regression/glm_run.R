@@ -1,4 +1,4 @@
-setwd("/home/megan/frequentist-bayesian-p-values-/logistic regression")
+setwd("C:/Users/megan.oh/OneDrive - National University of Singapore/FBPV/logistic regression")
 #set up 
 library(brms)
 library(rstanarm)
@@ -14,10 +14,6 @@ options(contrasts=c('contr.equalprior_deviations', 'contr.poly'))
 options(brms.backend = "rstan")
 library("extraDistr")
 library(broom)
-
-
-source("glm_2groups.R")
-source("glm_3groups.R")
 
 sample_size = 1000 
 mod_iter = 11000
@@ -63,20 +59,24 @@ bayes_widerprior_prefit <- brm(formula = value ~ group,
                                iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
 
-glmrun_2groups(iter = 1000, sample_size = 20, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
-glmrun_3groups(iter = 1000, sample_size = 20, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
 
-glmrun_2groups(iter = 1000, sample_size = 30, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
-glmrun_3groups(iter = 1000, sample_size = 30, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
+source("glm_2groups.R")
+source("glm_3groups.R")
 
-glmrun_2groups(iter = 1000, sample_size = 50, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
-glmrun_3groups(iter = 1000, sample_size = 50, 
-               mod_iter = 1100, mod_warmup = 1000, cores = 12)
+glmrun_2groups(iter = 5, sample_size = 20, 
+               mod_iter = 1100, mod_warmup = 1000, cores = 1)
+glmrun_3groups(iter = 5, sample_size = 20, 
+               mod_iter = 1100, mod_warmup = 1000, cores = 1)
+
+glmrun_2groups(iter = 1, sample_size = 30, 
+               mod_iter = 1100, mod_warmup = 1000, cores = 1)
+glmrun_3groups(iter = 1, sample_size = 30, 
+               mod_iter = 1100, mod_warmup = 1000, cores = 1)
+
+glmrun_2groups(iter = 1, sample_size = 50, 
+               mod_iter = 1100, mod_warmup = 1000, cores = 1)
+glmrun_3groups(iter = 1, sample_size = 50, 
+               mod_iter = 1100, mod_warmup = 1000, cores = 1)
 
 glmrun_2groups(iter = 1000, sample_size = 100, 
                mod_iter = 1100, mod_warmup = 1000, cores = 12)
