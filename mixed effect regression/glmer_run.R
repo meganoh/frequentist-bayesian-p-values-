@@ -73,43 +73,43 @@ bayes_widerprior_prefit <- brm(formula = y|trials(n) ~ group + (1|id),
                                iter = mod_iter, warmup = mod_warmup,
                                chains = 4, cores = 1)
 #sd = 0.5
-glmerrun_2groups(iter = 10000, sample_size = 20, re_sd = 0.5,
-                 mod_iter = 2000, mod_warmup = 1000, cores = 1) 
-glmerrun_3groups(iter = 10000, sample_size = 20, re_sd = 0.5,
-                 mod_iter = 2000, mod_warmup = 10000, cores = 1) 
-
-glmerrun_2groups(iter = 10000, sample_size = 30, re_sd = 0.5,
+# glmerrun_2groups(iter = 10000, sample_size = 20, re_sd = 0.5,
+#                  mod_iter = 2000, mod_warmup = 1000, cores = 1) 
+# glmerrun_3groups(iter = 10000, sample_size = 20, re_sd = 0.5,
+#                  mod_iter = 2000, mod_warmup = 10000, cores = 1) 
+# 
+# glmerrun_2groups(iter = 10000, sample_size = 30, re_sd = 0.5,
+#                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
+# glmerrun_3groups(iter = 10000, sample_size = 30, re_sd = 0.5,
+#                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
+# 
+# glmerrun_2groups(iter = 10000, sample_size = 50, re_sd = 0.5,
+#                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
+# glmerrun_3groups(iter = 10000, sample_size = 50, re_sd = 0.5,
+#                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
+# 
+# glmerrun_2groups(iter = 10000, sample_size = 100, re_sd = 0.5,
+#                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
+glmerrun_3groups(iter = 5000, sample_size = 100, re_sd = 0.5,
                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
-glmerrun_3groups(iter = 10000, sample_size = 30, re_sd = 0.5,
-                 mod_iter = 2000, mod_warmup = 1000, cores = 6)
-
-glmerrun_2groups(iter = 10000, sample_size = 50, re_sd = 0.5,
-                 mod_iter = 2000, mod_warmup = 1000, cores = 6)
-glmerrun_3groups(iter = 10000, sample_size = 50, re_sd = 0.5,
-                 mod_iter = 2000, mod_warmup = 1000, cores = 6)
-
-glmerrun_2groups(iter = 10000, sample_size = 100, re_sd = 0.5,
-                 mod_iter = 2000, mod_warmup = 1000, cores = 6)
-glmerrun_3groups(iter = 10000, sample_size = 100, re_sd = 0.5,
-                 mod_iter = 2000, mod_warmup = 10000, cores = 6)
 
 #sd = 1
-glmerrun_2groups(iter = 10000, sample_size = 20, re_sd = 1,
+glmerrun_2groups(iter = 5000, sample_size = 20, re_sd = 1,
                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
-glmerrun_3groups(iter = 10000, sample_size = 20, re_sd = 1,
-                 mod_iter = 2000, mod_warmup = 10000, cores = 6)
-
-glmerrun_2groups(iter = 10000, sample_size = 30, re_sd = 1,
-                 mod_iter = 2000, mod_warmup = 1000, cores = 6)
-glmerrun_3groups(iter = 10000, sample_size = 30, re_sd = 1,
+glmerrun_3groups(iter = 5000, sample_size = 20, re_sd = 1,
                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
 
-glmerrun_2groups(iter = 10000, sample_size = 50, re_sd = 1,
+glmerrun_2groups(iter = 5000, sample_size = 30, re_sd = 1,
                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
-glmerrun_3groups(iter = 10000, sample_size = 50, re_sd = 1,
+glmerrun_3groups(iter = 5000, sample_size = 30, re_sd = 1,
                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
 
-glmerrun_2groups(iter = 10000, sample_size = 100, re_sd = 1,
+glmerrun_2groups(iter = 5000, sample_size = 50, re_sd = 1,
                  mod_iter = 2000, mod_warmup = 1000, cores = 6)
-glmerrun_3groups(iter = 10000, sample_size = 100, re_sd = 1,
-                 mod_iter = 2000, mod_warmup = 10000, cores = 6)
+glmerrun_3groups(iter = 5000, sample_size = 50, re_sd = 1,
+                 mod_iter = 2000, mod_warmup = 1000, cores = 6)
+
+glmerrun_2groups(iter = 5000, sample_size = 100, re_sd = 1,
+                 mod_iter = 2000, mod_warmup = 1000, cores = 6)
+glmerrun_3groups(iter = 5000, sample_size = 100, re_sd = 1,
+                 mod_iter = 2000, mod_warmup = 1000, cores = 6)

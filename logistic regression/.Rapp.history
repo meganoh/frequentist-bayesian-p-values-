@@ -1,0 +1,7 @@
+load("/Users/meganoh/Downloads/Untitled/frequentist-bayesian-p-values-/logistic regression/glm_2GROUP.rda")
+load("/Users/meganoh/Downloads/Untitled/frequentist-bayesian-p-values-/logistic regression/glm_2groupresults.rda")
+load("/Users/meganoh/Downloads/Untitled/frequentist-bayesian-p-values-/logistic regression/glm_2groups_n20_iter5.rda")
+load("/Users/meganoh/Downloads/Untitled/frequentist-bayesian-p-values-/logistic regression/glm_3GROUP.rda")
+load("/Users/meganoh/Downloads/Untitled/frequentist-bayesian-p-values-/logistic regression/glm_3groupresults.rda")
+load("/Users/meganoh/Downloads/Untitled/frequentist-bayesian-p-values-/logistic regression/glm_3groups_n20_iter5.rda")
+load("/Users/meganoh/Downloads/Untitled/frequentist-bayesian-p-values-/logistic regression/glm_results.rda")

@@ -64,27 +64,27 @@ bayes_widerprior_prefit <- brm(formula = value ~ group,
 source("glm_2groups.R")
 source("glm_3groups.R")
 
-glmrun_2groups(iter = 10000, sample_size = 20, 
-               mod_iter = 2000, mod_warmup = 1000, cores = 1)
-glmrun_3groups(iter = 10000, sample_size = 20, 
-               mod_iter = 2000, mod_warmup = 1000, cores = 1)
-
-glmrun_2groups(iter = 10000, sample_size = 30,
-               mod_iter = 2000, mod_warmup = 1000, cores = 1)
-glmrun_3groups(iter = 10000, sample_size = 30,
-               mod_iter = 2000, mod_warmup = 1000, cores = 1)
-
-glmrun_2groups(iter = 10000, sample_size = 50,
-               mod_iter = 2000, mod_warmup = 1000, cores = 1)
-glmrun_3groups(iter = 10000, sample_size = 50,
-               mod_iter = 2000, mod_warmup = 1000, cores = 1)
-
-glmrun_2groups(iter = 10000, sample_size = 100,
-               mod_iter = 2000, mod_warmup = 1000, cores = 12)
-glmrun_3groups(iter = 10000, sample_size = 100,
-               mod_iter = 2000, mod_warmup = 1000, cores = 12)
-
-glmrun_2groups(iter = 10000, sample_size = 1000,
-               mod_iter = 2000, mod_warmup = 1000, cores = 12)
+# glmrun_2groups(iter = 10000, sample_size = 20, 
+#                mod_iter = 2000, mod_warmup = 1000, cores = 1)
+# glmrun_3groups(iter = 10000, sample_size = 20, 
+#                mod_iter = 2000, mod_warmup = 1000, cores = 1)
+# 
+# glmrun_2groups(iter = 10000, sample_size = 30,
+#                mod_iter = 2000, mod_warmup = 1000, cores = 1)
+# glmrun_3groups(iter = 10000, sample_size = 30,
+#                mod_iter = 2000, mod_warmup = 1000, cores = 1)
+# 
+# glmrun_2groups(iter = 10000, sample_size = 50,
+#                mod_iter = 2000, mod_warmup = 1000, cores = 1)
+# glmrun_3groups(iter = 10000, sample_size = 50,
+#                mod_iter = 2000, mod_warmup = 1000, cores = 1)
+# 
+# glmrun_2groups(iter = 10000, sample_size = 100,
+#                mod_iter = 2000, mod_warmup = 1000, cores = 12)
+# glmrun_3groups(iter = 10000, sample_size = 100,
+#                mod_iter = 2000, mod_warmup = 1000, cores = 12)
+# 
+# glmrun_2groups(iter = 10000, sample_size = 1000,
+#                mod_iter = 2000, mod_warmup = 1000, cores = 12)
 glmrun_3groups(iter = 10000, sample_size = 1000,
                mod_iter = 2000, mod_warmup = 1000, cores = 12)
